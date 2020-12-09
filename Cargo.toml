@@ -1,0 +1,32 @@
+[package]
+name = "geil"
+version = "0.1.0"
+authors = ["Arne Beer <contact@arne.beer>"]
+homepage = "https://github.com/nukesor/geil"
+repository = "https://github.com/nukesor/geil"
+license = "MIT"
+keywords = ["commandline", "git", "manager"]
+readme = "README.md"
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+
+dirs = "3"
+config = { version = "^0.10", default-features = false, features = ["yaml"] }
+
+log = "0.4"
+simplelog = { version = "0.8", default-features = false }
+
+git2 = "0.13"
+
+comfy-table= "^1"
+crossterm = "^0.18"
+clap = "3.0.0-beta.2"
+clap_generate = "3.0.0-beta.2"
+
+serde = "^1.0"
+bincode = "^1.2"
+serde_derive = "^1.0"

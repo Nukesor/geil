@@ -1,0 +1,117 @@
+use std::fs::{read_dir, File};
+use std::io::Write;
+use std::path::PathBuf;
+
+use anyhow::{anyhow, Context, Result};
+use serde_derive::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize)]
+pub struct State {
+    pub watched: Vec<PathBuf>,
+    pub repositories: Vec<PathBuf>,
+}
+
+impl State {
+    pub fn new() -> State {
+        State {
+            watched: Vec::new(),
+            repositories: Vec::new(),
+        }
+    }
+}
+
+impl State {
+    /// Save a state to the disk.
+    pub fn save(&self) -> Result<()> {
+        let serialized = bincode::serialize(self)
+            .context("Failed to serialize state. Please report this bug")?;
+
+        let path = default_cache_path()?;
+        let mut file = File::create(path)?;
+
+        file.write_all(&serialized)?;
+
+        Ok(())
+    }
+
+    /// Load an existing state from the disk or create an empty new one.
+    pub fn load() -> Result<State> {
+        let path = default_cache_path()?;
+        // Return default path if it doesn't exist yet
+        if !path.exists() {
+            return Ok(State::new());
+        }
+
+        let file = File::open(path)?;
+        let state = bincode::deserialize_from(&file)?;
+
+        Ok(state)
+    }
+}
+
+fn default_cache_path() -> Result<PathBuf> {
+    let home = dirs::home_dir().ok_or_else(|| anyhow!("Couldn't resolve home dir"))?;
+    let path = home.join(".local/share/geil");
+    Ok(path)
+}
+
+pub fn scan(state: &mut State) -> Result<()> {
+    // Go through all watched folder and check if they still exist
+    for key in state.watched.len()..0 {
+        if !state.watched[key].exists() || !state.watched[key].is_dir() {
+            println!(
+                "Watched folder does no longer exist: {:?}",
+                &state.watched[key]
+            );
+            state.watched.remove(key);
+        }
+    }
+
+    // Go through all repositories and check if they still exist
+    for key in state.repositories.len()..0 {
+        if !state.repositories[key].exists() || !state.repositories[key].is_dir() {
+            println!(
+                "Repository does no longer exist: {:?}",
+                &state.repositories[key]
+            );
+            state.repositories.remove(key);
+        }
+    }
+
+    // Do a full repository discovery on all watched repositories
+    for watched in &state.watched.clone() {
+        discover(watched, state, 0)?;
+    }
+
+    state.save()?;
+
+    Ok(())
+}
+
+pub fn discover(path: &PathBuf, state: &mut State, depths: usize) -> Result<()> {
+    // Check if a .git directory exists.
+    // If it does, add the directory and return
+    let git_dir = path.join(".git");
+    if git_dir.exists() {
+        if !state.repositories.contains(path) {
+            state.repositories.push(path.clone());
+        }
+        return Ok(());
+    }
+
+    // Recursion stop. Only check up to a dephts of 5
+    if depths == 5 {
+        return Ok(());
+    }
+
+    // The current path is no repository, search it's subdirectories
+    for dir_result in read_dir(path)? {
+        let dir = dir_result?.path();
+        if !dir.is_dir() {
+            continue;
+        }
+        discover(&dir, state, depths + 1)?;
+    }
+
+    Ok(())
+}
