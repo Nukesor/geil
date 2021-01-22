@@ -5,13 +5,17 @@ use log::error;
 use simplelog::{Config, LevelFilter, SimpleLogger};
 
 mod cli;
+mod display;
 mod git;
 #[macro_use]
 mod macros;
+mod repository_info;
 mod state;
 
 use cli::*;
+use display::*;
 use git::*;
+use repository_info::*;
 use state::*;
 
 fn main() -> Result<()> {
@@ -46,23 +50,34 @@ fn main() -> Result<()> {
             if !state.watched.contains(&path) {
                 state.watched.push(path);
             }
-            scan(&mut state)?;
+            state.scan()?;
             return Ok(());
         }
         SubCommand::Check => {
-            scan(&mut state)?;
-            state.save()?;
+            state.scan()?;
         }
         SubCommand::Update => {
-            scan(&mut state)?;
-            state.save()?;
+            state.scan()?;
         }
     };
+
+    // We create a struct for our internal representation for each repository
+    let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
+    for path in state.repositories.iter() {
+        let repository_info = RepositoryInfo {
+            path: path.clone(),
+            state: RepositoryState::NotChecked,
+            stashed: 0,
+        };
+        repo_infos.push(repository_info);
+    }
+
+    // We don't necessarily need any callbacks, but they're needed for interaction with git2
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(|_, _, _| credentials::get_credentials());
 
-    for path in state.repositories.iter() {
-        let repository = Repository::open(path)?;
+    for repo_info in repo_infos.iter_mut() {
+        let repository = Repository::open(&repo_info.path)?;
         let head = repository.head()?;
         if !head.is_branch() || head.name().is_none() {
             continue;
@@ -76,8 +91,9 @@ fn main() -> Result<()> {
         let branch = continue_on_none!(head.shorthand());
 
         update_repo(&repository, &remote, &branch)?;
-        show_stats(path)?;
     }
+
+    print_status(repo_infos)?;
 
     Ok(())
 }

@@ -1,15 +1,7 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use git2::*;
 
 pub mod credentials;
-
-pub fn show_stats(path: &PathBuf) -> Result<()> {
-    let _repository = Repository::open(path)?;
-
-    Ok(())
-}
 
 pub fn update_repo(repository: &Repository, remote: &str, branch: &str) -> Result<()> {
     let mut remote = repository.find_remote(&remote)?;

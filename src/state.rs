@@ -47,71 +47,71 @@ impl State {
 
         Ok(state)
     }
+
+    pub fn scan(&mut self) -> Result<()> {
+        // Go through all watched folder and check if they still exist
+        for key in self.watched.len()..0 {
+            if !self.watched[key].exists() || !self.watched[key].is_dir() {
+                println!(
+                    "Watched folder does no longer exist: {:?}",
+                    &self.watched[key]
+                );
+                self.watched.remove(key);
+            }
+        }
+
+        // Go through all repositories and check if they still exist
+        for key in self.repositories.len()..0 {
+            if !self.repositories[key].exists() || !self.repositories[key].is_dir() {
+                println!(
+                    "Repository does no longer exist: {:?}",
+                    &self.repositories[key]
+                );
+                self.repositories.remove(key);
+            }
+        }
+
+        // Do a full repository discovery on all watched repositories
+        for watched in &self.watched.clone() {
+            self.discover(watched, 0)?;
+        }
+
+        self.save()?;
+
+        Ok(())
+    }
+
+    pub fn discover(&mut self, path: &PathBuf, depths: usize) -> Result<()> {
+        // Check if a .git directory exists.
+        // If it does, add the directory and return
+        let git_dir = path.join(".git");
+        if git_dir.exists() {
+            if !self.repositories.contains(path) {
+                self.repositories.push(path.clone());
+            }
+            return Ok(());
+        }
+
+        // Recursion stop. Only check up to a dephts of 5
+        if depths == 5 {
+            return Ok(());
+        }
+
+        // The current path is no repository, search it's subdirectories
+        for dir_result in read_dir(path)? {
+            let dir = dir_result?.path();
+            if !dir.is_dir() {
+                continue;
+            }
+            self.discover(&dir, depths + 1)?;
+        }
+
+        Ok(())
+    }
 }
 
 fn default_cache_path() -> Result<PathBuf> {
     let home = dirs::home_dir().ok_or_else(|| anyhow!("Couldn't resolve home dir"))?;
     let path = home.join(".local/share/geil");
     Ok(path)
-}
-
-pub fn scan(state: &mut State) -> Result<()> {
-    // Go through all watched folder and check if they still exist
-    for key in state.watched.len()..0 {
-        if !state.watched[key].exists() || !state.watched[key].is_dir() {
-            println!(
-                "Watched folder does no longer exist: {:?}",
-                &state.watched[key]
-            );
-            state.watched.remove(key);
-        }
-    }
-
-    // Go through all repositories and check if they still exist
-    for key in state.repositories.len()..0 {
-        if !state.repositories[key].exists() || !state.repositories[key].is_dir() {
-            println!(
-                "Repository does no longer exist: {:?}",
-                &state.repositories[key]
-            );
-            state.repositories.remove(key);
-        }
-    }
-
-    // Do a full repository discovery on all watched repositories
-    for watched in &state.watched.clone() {
-        discover(watched, state, 0)?;
-    }
-
-    state.save()?;
-
-    Ok(())
-}
-
-pub fn discover(path: &PathBuf, state: &mut State, depths: usize) -> Result<()> {
-    // Check if a .git directory exists.
-    // If it does, add the directory and return
-    let git_dir = path.join(".git");
-    if git_dir.exists() {
-        if !state.repositories.contains(path) {
-            state.repositories.push(path.clone());
-        }
-        return Ok(());
-    }
-
-    // Recursion stop. Only check up to a dephts of 5
-    if depths == 5 {
-        return Ok(());
-    }
-
-    // The current path is no repository, search it's subdirectories
-    for dir_result in read_dir(path)? {
-        let dir = dir_result?.path();
-        if !dir.is_dir() {
-            continue;
-        }
-        discover(&dir, state, depths + 1)?;
-    }
-
-    Ok(())
 }
