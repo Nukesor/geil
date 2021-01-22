@@ -18,12 +18,12 @@ dirs = "3"
 config = { version = "^0.10", default-features = false, features = ["yaml"] }
 
 log = "0.4"
-simplelog = { version = "0.8", default-features = false }
+simplelog = { version = "0.9", default-features = false }
 
 git2 = "0.13"
 
-comfy-table= "^1"
-crossterm = "^0.18"
+comfy-table= "^2"
+crossterm = "^0.19"
 clap = "3.0.0-beta.2"
 clap_generate = "3.0.0-beta.2"
 
