@@ -1,70 +1,52 @@
 use anyhow::Result;
-use git2::*;
+use git2::{RemoteCallbacks, Repository};
+
+use crate::repository_info::*;
 
 pub mod credentials;
+pub mod local;
+pub mod update;
 
-pub fn update_repo(repository: &Repository, remote: &str, branch: &str) -> Result<()> {
-    let mut remote = repository.find_remote(&remote)?;
-    let fetch_commit = fetch_all(&repository, &[&branch], &mut remote)?;
-    // Do a merge analysis.
-    let analysis = repository.merge_analysis(&[&fetch_commit])?;
+pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
+    // We don't necessarily need any callbacks, but they're needed for interaction with git2
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|_, _, _| credentials::get_credentials());
 
-    // Fast forward, if it's possible.
-    if analysis.0.is_fast_forward() {
-        // Check if the local branch really exists.
-        // This error case shouldn't be possible.
-        let refname = format!("refs/heads/{}", branch);
-        match repository.find_reference(&refname) {
-            Ok(mut refs) => {
-                fast_forward(&repository, branch, &mut refs, &fetch_commit)?;
+    for repo_info in repo_infos.iter_mut() {
+        let repository = Repository::open(&repo_info.path)?;
+        let head = repository.head()?;
+        if !head.is_branch() || head.name().is_none() {
+            continue;
+        }
+
+        // Check if we can find a remote for the current branch.
+        let remote = match repository.branch_remote_name(head.name().unwrap()) {
+            Ok(remote) => remote,
+            Err(err) => {
+                repo_info.state = RepositoryState::InvalidRemoteName;
+                repo_info.error = Some(err.to_string());
+                continue;
             }
-            Err(_) => println!(
-                "Cannot find remote branch {} for repository {:?}.",
-                branch,
-                repository.path()
-            ),
         };
+        // Check if the remote is valid utf8.
+        let remote = match remote.as_str() {
+            Some(remote) => remote.clone(),
+            None => {
+                repo_info.state = RepositoryState::InvalidRemoteName;
+                continue;
+            }
+        };
+        // Check if the branch has a valid shorthand.
+        let branch = match head.shorthand() {
+            Some(branch) => branch,
+            None => {
+                repo_info.state = RepositoryState::NoShorthand;
+                continue;
+            }
+        };
+
+        update::update_repo(&repository, &remote, &branch)?;
     }
 
-    Ok(())
-}
-
-/// Fetch all branches and tags of the current repository.
-fn fetch_all<'a>(
-    repo: &'a git2::Repository,
-    refs: &[&str],
-    remote: &'a mut git2::Remote,
-) -> Result<git2::AnnotatedCommit<'a>, git2::Error> {
-    // Use default fetch options.
-    // Specify to also download all Tags.
-    let mut fetch_options = FetchOptions::new();
-    fetch_options.download_tags(AutotagOption::All);
-
-    // Do the acutal fetch.
-    remote.fetch(refs, Some(&mut fetch_options), None)?;
-
-    // Get the latest fetch head.
-    let fetch_head = repo.find_reference("FETCH_HEAD")?;
-    Ok(repo.reference_to_annotated_commit(&fetch_head)?)
-}
-
-/// Apply a fast forward merge to the current branch.
-fn fast_forward(
-    repository: &Repository,
-    name: &str,
-    local_branch: &mut git2::Reference,
-    remote_commit: &git2::AnnotatedCommit,
-) -> Result<(), git2::Error> {
-    // Set the current branch head to the remote branch head
-    let msg = format!(
-        "Fast-Forward: Setting {} to id: {}",
-        name,
-        remote_commit.id()
-    );
-    local_branch.set_target(remote_commit.id(), &msg)?;
-
-    // Set the repository head to the new branch head.
-    repository.set_head(&name)?;
-    repository.checkout_head(Some(git2::build::CheckoutBuilder::default().safe()))?;
     Ok(())
 }

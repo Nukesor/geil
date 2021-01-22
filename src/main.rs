@@ -1,14 +1,11 @@
 use anyhow::Result;
 use clap::Clap;
-use git2::{RemoteCallbacks, Repository};
 use log::error;
 use simplelog::{Config, LevelFilter, SimpleLogger};
 
 mod cli;
 mod display;
 mod git;
-#[macro_use]
-mod macros;
 mod repository_info;
 mod state;
 
@@ -64,34 +61,11 @@ fn main() -> Result<()> {
     // We create a struct for our internal representation for each repository
     let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
     for path in state.repositories.iter() {
-        let repository_info = RepositoryInfo {
-            path: path.clone(),
-            state: RepositoryState::NotChecked,
-            stashed: 0,
-        };
+        let repository_info = RepositoryInfo::new(path.clone());
         repo_infos.push(repository_info);
     }
 
-    // We don't necessarily need any callbacks, but they're needed for interaction with git2
-    let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(|_, _, _| credentials::get_credentials());
-
-    for repo_info in repo_infos.iter_mut() {
-        let repository = Repository::open(&repo_info.path)?;
-        let head = repository.head()?;
-        if !head.is_branch() || head.name().is_none() {
-            continue;
-        }
-
-        // Check if we can find a remote for the current branch.
-        let remote = continue_on_err!(repository.branch_remote_name(head.name().unwrap()));
-        // Check if the remote is valid utf8.
-        let remote = continue_on_none!(remote.as_str());
-        // Check if the branch has a valid shorthand.
-        let branch = continue_on_none!(head.shorthand());
-
-        update_repo(&repository, &remote, &branch)?;
-    }
+    update_repos(&mut repo_infos);
 
     print_status(repo_infos)?;
 
