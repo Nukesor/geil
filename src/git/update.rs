@@ -2,10 +2,16 @@ use anyhow::Result;
 use git2::*;
 
 use super::credentials::*;
+use crate::repository_info::*;
 
-pub fn update_repo(repository: &Repository, remote: &str, branch: &str) -> Result<()> {
+pub fn update_repo(
+    repo_info: &mut RepositoryInfo,
+    repository: &Repository,
+    remote: &str,
+    branch: &str,
+) -> Result<()> {
     let mut remote = repository.find_remote(&remote)?;
-    let fetch_commit = fetch_all(&repository, &[&branch], &mut remote)?;
+    let fetch_commit = fetch_all(repo_info, &repository, &[&branch], &mut remote)?;
     // Do a merge analysis.
     let analysis = repository.merge_analysis(&[&fetch_commit])?;
 
@@ -16,13 +22,16 @@ pub fn update_repo(repository: &Repository, remote: &str, branch: &str) -> Resul
         let refname = format!("refs/heads/{}", branch);
         match repository.find_reference(&refname) {
             Ok(mut refs) => {
-                fast_forward(&repository, branch, &mut refs, &fetch_commit)?;
+                fast_forward(repo_info, &repository, branch, &mut refs, &fetch_commit)?;
             }
-            Err(_) => println!(
-                "Cannot find remote branch {} for repository {:?}.",
-                branch,
-                repository.path()
-            ),
+            Err(_) => {
+                repo_info.state = GeilRepositoryState::RemoteNotFound;
+                println!(
+                    "Cannot find remote branch {} for repository {:?}.",
+                    branch,
+                    repository.path()
+                );
+            }
         };
     }
 
@@ -31,6 +40,7 @@ pub fn update_repo(repository: &Repository, remote: &str, branch: &str) -> Resul
 
 /// Fetch all branches and tags of the current repository.
 fn fetch_all<'a>(
+    repo_info: &mut RepositoryInfo,
     repo: &'a git2::Repository,
     refs: &[&str],
     remote: &'a mut git2::Remote,
@@ -50,6 +60,7 @@ fn fetch_all<'a>(
 
 /// Apply a fast forward merge to the current branch.
 fn fast_forward(
+    repo_info: &mut RepositoryInfo,
     repository: &Repository,
     name: &str,
     local_branch: &mut git2::Reference,

@@ -23,7 +23,7 @@ pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
         let remote = match repository.branch_remote_name(head.name().unwrap()) {
             Ok(remote) => remote,
             Err(err) => {
-                repo_info.state = RepositoryState::InvalidRemoteName;
+                repo_info.state = GeilRepositoryState::InvalidRemoteName;
                 repo_info.error = Some(err.to_string());
                 continue;
             }
@@ -32,7 +32,7 @@ pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
         let remote = match remote.as_str() {
             Some(remote) => remote.clone(),
             None => {
-                repo_info.state = RepositoryState::InvalidRemoteName;
+                repo_info.state = GeilRepositoryState::InvalidRemoteName;
                 continue;
             }
         };
@@ -40,12 +40,12 @@ pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
         let branch = match head.shorthand() {
             Some(branch) => branch,
             None => {
-                repo_info.state = RepositoryState::NoShorthand;
+                repo_info.state = GeilRepositoryState::NoShorthand;
                 continue;
             }
         };
 
-        update::update_repo(&repository, &remote, &branch)?;
+        update::update_repo(repo_info, &repository, &remote, &branch)?;
     }
 
     Ok(())
