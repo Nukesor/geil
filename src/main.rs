@@ -6,6 +6,7 @@ use simplelog::{Config, LevelFilter, SimpleLogger};
 mod cli;
 mod display;
 mod git;
+mod process;
 mod repository_info;
 mod state;
 
@@ -65,7 +66,7 @@ fn main() -> Result<()> {
         repo_infos.push(repository_info);
     }
 
-    update_repos(&mut repo_infos);
+    update_repos(&mut repo_infos)?;
 
     print_status(repo_infos)?;
 

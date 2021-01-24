@@ -1,27 +1,29 @@
 use std::path::PathBuf;
 
-pub enum GeilRepositoryState {
-    NotChecked,
-    RemoteUnknown,
-    RemoteNotFound,
-    InvalidRemoteName,
-    NoShorthand,
+use strum_macros::Display;
+
+#[derive(Display)]
+pub enum RepositoryState {
+    UpToDate,
+    Fetched,
+    Updated,
+    NoFastForward,
 }
 
 pub struct RepositoryInfo {
     pub path: PathBuf,
-    pub state: GeilRepositoryState,
-    pub error: Option<String>,
+    pub state: RepositoryState,
     pub stashed: usize,
+    pub local_changes: bool,
 }
 
 impl RepositoryInfo {
     pub fn new(path: PathBuf) -> RepositoryInfo {
         RepositoryInfo {
             path,
-            state: GeilRepositoryState::NotChecked,
-            error: None,
+            state: RepositoryState::UpToDate,
             stashed: 0,
+            local_changes: false,
         }
     }
 }

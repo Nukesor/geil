@@ -1,51 +1,84 @@
-use anyhow::Result;
-use git2::{RemoteCallbacks, Repository};
+use std::collections::HashMap;
+use std::env::vars;
 
+use anyhow::Result;
+use log::info;
+
+use crate::cmd;
+use crate::process::*;
 use crate::repository_info::*;
 
-pub mod credentials;
-pub mod local;
-pub mod update;
-
 pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
-    // We don't necessarily need any callbacks, but they're needed for interaction with git2
-    let mut callbacks = RemoteCallbacks::new();
-    callbacks.credentials(|_, _, _| credentials::get_credentials());
-
+    // Save all environment variables for later injection into git
+    let mut envs = HashMap::new();
+    for (key, value) in vars() {
+        envs.insert(key, value);
+    }
     for repo_info in repo_infos.iter_mut() {
-        let repository = Repository::open(&repo_info.path)?;
-        let head = repository.head()?;
-        if !head.is_branch() || head.name().is_none() {
-            continue;
-        }
+        info!("Looking at: {}", repo_info.path.clone().to_string_lossy());
+        get_stashed_entries(repo_info, &envs)?;
+        update_repo(repo_info, &envs)?;
+    }
 
-        // Check if we can find a remote for the current branch.
-        let remote = match repository.branch_remote_name(head.name().unwrap()) {
-            Ok(remote) => remote,
-            Err(err) => {
-                repo_info.state = GeilRepositoryState::InvalidRemoteName;
-                repo_info.error = Some(err.to_string());
-                continue;
-            }
-        };
-        // Check if the remote is valid utf8.
-        let remote = match remote.as_str() {
-            Some(remote) => remote.clone(),
-            None => {
-                repo_info.state = GeilRepositoryState::InvalidRemoteName;
-                continue;
-            }
-        };
-        // Check if the branch has a valid shorthand.
-        let branch = match head.shorthand() {
-            Some(branch) => branch,
-            None => {
-                repo_info.state = GeilRepositoryState::NoShorthand;
-                continue;
-            }
-        };
+    Ok(())
+}
 
-        update::update_repo(repo_info, &repository, &remote, &branch)?;
+pub fn get_stashed_entries(
+    repo_info: &mut RepositoryInfo,
+    envs: &HashMap<String, String>,
+) -> Result<()> {
+    info!("Check for stashed entries");
+    let merge = cmd!("git rev-list --walk-reflogs --count refs/stash")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone());
+    let capture_data = merge.run()?;
+    let stdout = String::from_utf8_lossy(&capture_data.stdout);
+    // There are now stashes
+    if stdout.contains("unknown revision or path not in the working tree") {
+        return Ok(());
+    }
+    let number = stdout
+        .lines()
+        .next()
+        .expect("At least two lines of output")
+        .trim();
+
+    repo_info.stashed = number.parse::<usize>().expect("Couldn't get stash amount");
+
+    Ok(())
+}
+
+pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
+    fetch_repo(repo_info, envs)?;
+
+    info!("Merge");
+    let merge = cmd!("git merge --ff-only")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone());
+    let capture_data = merge.run()?;
+    let stdout = String::from_utf8_lossy(&capture_data.stdout);
+
+    if stdout.contains("Updating") {
+        repo_info.state = RepositoryState::Updated;
+    } else if stdout.contains("Already up to date") {
+        repo_info.state = RepositoryState::UpToDate;
+    } else if stdout.contains("fatal:") {
+        repo_info.state = RepositoryState::NoFastForward;
+    } else {
+        info!("Couldn't get state from output: {}", stdout);
+    }
+
+    Ok(())
+}
+
+pub fn fetch_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
+    info!("Fetch");
+    let fetch = cmd!("git fetch --all")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone());
+    let capture_data = fetch.run()?;
+    if String::from_utf8_lossy(&capture_data.stdout).contains("Receiving objects: 100%") {
+        repo_info.state = RepositoryState::Fetched;
     }
 
     Ok(())
