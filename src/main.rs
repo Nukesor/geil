@@ -1,6 +1,11 @@
+use std::collections::HashMap;
+use std::env::vars;
+
 use anyhow::Result;
 use clap::Clap;
+use indicatif::ParallelProgressIterator;
 use log::error;
+use rayon::prelude::*;
 use simplelog::{Config, LevelFilter, SimpleLogger};
 
 mod cli;
@@ -71,7 +76,22 @@ fn main() -> Result<()> {
         repo_infos.push(repository_info);
     }
 
-    update_repos(&mut repo_infos)?;
+    // Save all environment variables for later injection into git
+    let mut envs = HashMap::new();
+    for (key, value) in vars() {
+        envs.insert(key, value);
+    }
+
+    let results: Vec<Result<RepositoryInfo>> = repo_infos
+        .into_par_iter()
+        .progress()
+        .map(|repo_info| handle_repo(repo_info, &envs))
+        .collect();
+
+    let mut repo_infos = Vec::new();
+    for result in results {
+        repo_infos.push(result?);
+    }
 
     print_status(repo_infos, show_all)?;
 

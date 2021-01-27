@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env::vars;
 
 use anyhow::Result;
 use log::info;
@@ -8,27 +7,23 @@ use crate::cmd;
 use crate::process::*;
 use crate::repository_info::*;
 
-pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
-    // Save all environment variables for later injection into git
-    let mut envs = HashMap::new();
-    for (key, value) in vars() {
-        envs.insert(key, value);
-    }
-    for repo_info in repo_infos.iter_mut() {
-        info!("Looking at: {}", repo_info.path.clone().to_string_lossy());
-        get_stashed_entries(repo_info, &envs)?;
-        check_local_changes(repo_info, &envs)?;
-        fetch_repo(repo_info, &envs)?;
+pub fn handle_repo(
+    mut repo_info: RepositoryInfo,
+    envs: &HashMap<String, String>,
+) -> Result<RepositoryInfo> {
+    info!("Looking at: {}", repo_info.path.clone().to_string_lossy());
+    get_stashed_entries(&mut repo_info, &envs)?;
+    check_local_changes(&mut repo_info, &envs)?;
+    fetch_repo(&mut repo_info, &envs)?;
 
-        // Skip update
-        // We cannot merge with local changes anyway.
-        if repo_info.local_changes {
-            continue;
-        }
-        update_repo(repo_info, &envs)?;
+    // Skip update
+    // We cannot merge with local changes anyway.
+    if repo_info.local_changes {
+        return Ok(repo_info);
     }
+    update_repo(&mut repo_info, &envs)?;
 
-    Ok(())
+    Ok(repo_info)
 }
 
 pub fn get_stashed_entries(

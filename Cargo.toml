@@ -23,6 +23,9 @@ simplelog = { version = "0.9", default-features = false }
 shellexpand = "^2"
 subprocess = "^0.2"
 
+indicatif = {version = "^0.15", features = ["rayon"]}
+rayon = "^1.5"
+
 comfy-table= "^2"
 crossterm = "^0.19"
 clap = "3.0.0-beta.2"
