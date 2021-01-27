@@ -43,10 +43,13 @@ fn main() -> Result<()> {
                 if !path.exists() || !path.is_dir() {
                     error!("Cannot find repository at {:?}", path);
                 }
-                if !state.repositories.contains(&path) {
-                    state.repositories.push(path);
+                let real_path = std::fs::canonicalize(&path)?;
+                if !state.repositories.contains(&real_path) {
+                    println!("Added repository: {:?}", &real_path);
+                    state.repositories.push(real_path);
                 }
             }
+            state.save()?;
             return Ok(());
         }
         SubCommand::Watch { directory: path } => {

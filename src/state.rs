@@ -50,7 +50,7 @@ impl State {
 
     pub fn scan(&mut self) -> Result<()> {
         // Go through all watched folder and check if they still exist
-        for key in self.watched.len()..0 {
+        for key in (0..self.watched.len()).rev() {
             if !self.watched[key].exists() || !self.watched[key].is_dir() {
                 println!(
                     "Watched folder does no longer exist: {:?}",
@@ -61,7 +61,7 @@ impl State {
         }
 
         // Go through all repositories and check if they still exist
-        for key in self.repositories.len()..0 {
+        for key in (0..self.repositories.len()).rev() {
             if !self.repositories[key].exists() || !self.repositories[key].is_dir() {
                 println!(
                     "Repository does no longer exist: {:?}",
