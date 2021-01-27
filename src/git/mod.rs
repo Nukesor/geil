@@ -17,6 +17,14 @@ pub fn update_repos(repo_infos: &mut Vec<RepositoryInfo>) -> Result<()> {
     for repo_info in repo_infos.iter_mut() {
         info!("Looking at: {}", repo_info.path.clone().to_string_lossy());
         get_stashed_entries(repo_info, &envs)?;
+        check_local_changes(repo_info, &envs)?;
+        fetch_repo(repo_info, &envs)?;
+
+        // Skip update
+        // We cannot merge with local changes anyway.
+        if repo_info.local_changes {
+            continue;
+        }
         update_repo(repo_info, &envs)?;
     }
 
@@ -48,9 +56,43 @@ pub fn get_stashed_entries(
     Ok(())
 }
 
-pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
-    fetch_repo(repo_info, envs)?;
+pub fn check_local_changes(
+    repo_info: &mut RepositoryInfo,
+    envs: &HashMap<String, String>,
+) -> Result<()> {
+    info!("Check for local changes");
+    let merge = cmd!("git status")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone());
+    let capture_data = merge.run()?;
+    let stdout = String::from_utf8_lossy(&capture_data.stdout);
 
+    // No local changes, everything seems clean.
+    if stdout.contains("nothing to commit, working tree clean") {
+        return Ok(());
+    }
+
+    repo_info.local_changes = true;
+
+    Ok(())
+}
+
+pub fn fetch_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
+    info!("Fetch");
+    let fetch = cmd!("git fetch --all")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone());
+    let capture_data = fetch.run()?;
+    if String::from_utf8_lossy(&capture_data.stdout).contains("Receiving objects: 100%") {
+        repo_info.state = RepositoryState::Fetched;
+    } else {
+        repo_info.state = RepositoryState::UpToDate;
+    }
+
+    Ok(())
+}
+
+pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
     info!("Merge");
     let merge = cmd!("git merge --ff-only")
         .cwd(repo_info.path.clone())
@@ -66,19 +108,6 @@ pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String
         repo_info.state = RepositoryState::NoFastForward;
     } else {
         info!("Couldn't get state from output: {}", stdout);
-    }
-
-    Ok(())
-}
-
-pub fn fetch_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
-    info!("Fetch");
-    let fetch = cmd!("git fetch --all")
-        .cwd(repo_info.path.clone())
-        .env(envs.clone());
-    let capture_data = fetch.run()?;
-    if String::from_utf8_lossy(&capture_data.stdout).contains("Receiving objects: 100%") {
-        repo_info.state = RepositoryState::Fetched;
     }
 
     Ok(())

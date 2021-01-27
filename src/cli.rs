@@ -34,9 +34,17 @@ pub enum SubCommand {
     },
 
     /// Try a "git pull" for all repositories.
-    Update,
+    Update {
+        /// Show all repositories and not only those that are somehow interesting
+        #[clap(short, long)]
+        all: bool,
+    },
 
     /// Do a quick check on the current status of all repositories.
     /// Doesn't alter anything. Only displays the current status.
-    Check,
+    Check {
+        /// Show all repositories and not only those that are somehow interesting
+        #[clap(short, long)]
+        all: bool,
+    },
 }

@@ -31,9 +31,10 @@ fn main() -> Result<()> {
 
     let mut state = State::load()?;
 
+    let mut show_all = false;
     match opt.cmd {
         SubCommand::Add { repo: path } => {
-            if !path.exists() {
+            if !path.exists() || !path.is_dir() {
                 error!("Cannot find repository at {:?}", path);
             }
             if !state.repositories.contains(&path) {
@@ -42,7 +43,7 @@ fn main() -> Result<()> {
             return Ok(());
         }
         SubCommand::Watch { directory: path } => {
-            if !path.exists() {
+            if !path.exists() || !path.is_dir() {
                 error!("Cannot find directory at {:?}", path);
             }
             if !state.watched.contains(&path) {
@@ -51,11 +52,13 @@ fn main() -> Result<()> {
             state.scan()?;
             return Ok(());
         }
-        SubCommand::Check => {
+        SubCommand::Check { all } => {
             state.scan()?;
+            show_all = all;
         }
-        SubCommand::Update => {
+        SubCommand::Update { all } => {
             state.scan()?;
+            show_all = all;
         }
     };
 
@@ -68,7 +71,7 @@ fn main() -> Result<()> {
 
     update_repos(&mut repo_infos)?;
 
-    print_status(repo_infos)?;
+    print_status(repo_infos, show_all)?;
 
     Ok(())
 }
