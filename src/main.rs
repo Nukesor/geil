@@ -88,9 +88,10 @@ fn main() -> Result<()> {
     }
 
     let results: Vec<Result<RepositoryInfo>> = repo_infos
-        //.into_par_iter()
-        //.progress()
-        .into_iter()
+        .into_par_iter()
+        .progress()
+        // Commend above and uncomment below for debug
+        //.into_iter()
         .map(|repo_info| handle_repo(repo_info, &envs))
         .collect();
 
