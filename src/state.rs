@@ -62,7 +62,11 @@ impl State {
 
         // Go through all repositories and check if they still exist
         for key in (0..self.repositories.len()).rev() {
-            if !self.repositories[key].exists() || !self.repositories[key].is_dir() {
+            if !self.repositories[key].exists()
+                || !self.repositories[key].is_dir()
+                || !self.repositories[key].join(".git").exists()
+                || !self.repositories[key].join(".git").is_dir()
+            {
                 println!(
                     "Repository does no longer exist: {:?}",
                     &self.repositories[key]

@@ -56,8 +56,10 @@ fn main() -> Result<()> {
             if !path.exists() || !path.is_dir() {
                 error!("Cannot find directory at {:?}", path);
             }
-            if !state.watched.contains(&path) {
-                state.watched.push(path);
+            let real_path = std::fs::canonicalize(&path)?;
+            if !state.watched.contains(&real_path) {
+                println!("Watching repository: {:?}", &real_path);
+                state.watched.push(real_path);
             }
             state.scan()?;
             return Ok(());
@@ -86,8 +88,9 @@ fn main() -> Result<()> {
     }
 
     let results: Vec<Result<RepositoryInfo>> = repo_infos
-        .into_par_iter()
-        .progress()
+        //.into_par_iter()
+        //.progress()
+        .into_iter()
         .map(|repo_info| handle_repo(repo_info, &envs))
         .collect();
 
