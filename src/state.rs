@@ -83,9 +83,10 @@ impl State {
 
     pub fn discover(&mut self, path: &PathBuf, depths: usize) -> Result<()> {
         // Check if a .git directory exists.
-        // If it does, add the directory and return
+        // If it does, always stop searching.
         let git_dir = path.join(".git");
         if git_dir.exists() {
+            // Add the repository, if we don't know it yet.
             if !self.repositories.contains(path) {
                 self.repositories.push(path.clone());
             }

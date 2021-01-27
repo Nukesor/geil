@@ -33,12 +33,14 @@ fn main() -> Result<()> {
 
     let mut show_all = false;
     match opt.cmd {
-        SubCommand::Add { repo: path } => {
-            if !path.exists() || !path.is_dir() {
-                error!("Cannot find repository at {:?}", path);
-            }
-            if !state.repositories.contains(&path) {
-                state.repositories.push(path);
+        SubCommand::Add { repos } => {
+            for path in repos {
+                if !path.exists() || !path.is_dir() {
+                    error!("Cannot find repository at {:?}", path);
+                }
+                if !state.repositories.contains(&path) {
+                    state.repositories.push(path);
+                }
             }
             return Ok(());
         }

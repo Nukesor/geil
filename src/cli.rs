@@ -23,7 +23,7 @@ pub enum SubCommand {
     /// Add a repository
     Add {
         /// The repository that should be watched
-        repo: PathBuf,
+        repos: Vec<PathBuf>,
     },
 
     /// Add a directory which should be searched for repositories.
