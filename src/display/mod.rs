@@ -11,13 +11,6 @@ pub fn print_status(repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Result<(
     table.set_header(vec!["Path", "State", "Local Changes", "Stash size"]);
 
     for info in repo_infos.iter() {
-        println!(
-            "{}, {}, {}, {}",
-            !show_all,
-            matches!(info.state, RepositoryState::UpToDate),
-            info.stashed == 0,
-            !info.local_changes
-        );
         if !show_all
             && matches!(info.state, RepositoryState::UpToDate)
             && info.stashed == 0
