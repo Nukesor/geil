@@ -3,22 +3,30 @@ use comfy_table::*;
 
 use crate::repository_info::{RepositoryInfo, RepositoryState};
 
-pub fn print_status(repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Result<()> {
+pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Result<()> {
+    // Filter all repos that don't need attention.
+    if !show_all {
+        repo_infos = repo_infos
+            .into_iter()
+            .filter(|info| {
+                !matches!(info.state, RepositoryState::UpToDate)
+                    || !info.stashed == 0
+                    || info.local_changes
+            })
+            .collect();
+    }
+
+    if repo_infos.is_empty() {
+        println!("Nothing to do here, everything looks perfectly fine.");
+        return Ok(());
+    }
+
     let mut table = Table::new();
     table.set_content_arrangement(ContentArrangement::Dynamic);
     table.load_preset(comfy_table::presets::UTF8_FULL);
 
     table.set_header(vec!["Path", "State", "Local Changes", "Stash size"]);
-
     for info in repo_infos.iter() {
-        if !show_all
-            && matches!(info.state, RepositoryState::UpToDate)
-            && info.stashed == 0
-            && !info.local_changes
-        {
-            continue;
-        }
-
         let mut row = Vec::new();
         row.push(Cell::new(info.path.to_string_lossy().into_owned()));
         row.push(format_state(&info.state));
