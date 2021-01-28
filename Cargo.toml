@@ -1,6 +1,6 @@
 [package]
 name = "geil"
-version = "0.1.0"
+version = "0.0.1-alpha.0"
 authors = ["Arne Beer <contact@arne.beer>"]
 homepage = "https://github.com/nukesor/geil"
 repository = "https://github.com/nukesor/geil"
