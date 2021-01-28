@@ -3,7 +3,7 @@ use std::env::vars;
 
 use anyhow::Result;
 use clap::Clap;
-use indicatif::ParallelProgressIterator;
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use log::error;
 use rayon::prelude::*;
 use simplelog::{Config, LevelFilter, SimpleLogger};
@@ -87,13 +87,21 @@ fn main() -> Result<()> {
         envs.insert(key, value);
     }
 
+    let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
+    let bar = ProgressBar::new(repo_infos.len() as u64);
+    bar.set_style(style);
+    bar.set_message("Checking repositories");
     let results: Vec<Result<RepositoryInfo>> = repo_infos
         .into_par_iter()
-        .progress()
         // Commend above and uncomment below for debug
         //.into_iter()
-        .map(|repo_info| handle_repo(repo_info, &envs))
+        .map(|repo_info| {
+            bar.inc(1);
+            handle_repo(repo_info, &envs)
+        })
         .collect();
+
+    bar.finish_with_message("All done: ");
 
     let mut repo_infos = Vec::new();
     for result in results {

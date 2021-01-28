@@ -13,12 +13,12 @@ pub fn handle_repo(
 ) -> Result<RepositoryInfo> {
     info!("Looking at: {}", repo_info.path.clone().to_string_lossy());
     get_stashed_entries(&mut repo_info, &envs)?;
-    check_local_changes(&mut repo_info, &envs)?;
     fetch_repo(&mut repo_info, &envs)?;
+    check_local_changes(&mut repo_info, &envs)?;
 
     // Skip update
     // We cannot merge with local changes anyway.
-    if repo_info.local_changes {
+    if matches!(repo_info.state, RepositoryState::LocalChanges) {
         return Ok(repo_info);
     }
     update_repo(&mut repo_info, &envs)?;
@@ -67,7 +67,7 @@ pub fn check_local_changes(
         return Ok(());
     }
 
-    repo_info.local_changes = true;
+    repo_info.state = RepositoryState::LocalChanges;
 
     Ok(())
 }

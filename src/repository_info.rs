@@ -8,13 +8,13 @@ pub enum RepositoryState {
     Fetched,
     Updated,
     NoFastForward,
+    LocalChanges,
 }
 
 pub struct RepositoryInfo {
     pub path: PathBuf,
     pub state: RepositoryState,
     pub stashed: usize,
-    pub local_changes: bool,
 }
 
 impl RepositoryInfo {
@@ -23,7 +23,6 @@ impl RepositoryInfo {
             path,
             state: RepositoryState::UpToDate,
             stashed: 0,
-            local_changes: false,
         }
     }
 }
