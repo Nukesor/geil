@@ -40,9 +40,12 @@ fn main() -> Result<()> {
     match opt.cmd {
         SubCommand::Add { repos } => {
             for path in repos {
+                // Check if the directory to add actually exists
                 if !path.exists() || !path.is_dir() {
                     error!("Cannot find repository at {:?}", path);
                 }
+
+                // Store the absolute path.
                 let real_path = std::fs::canonicalize(&path)?;
                 if !state.repositories.contains(&real_path) {
                     println!("Added repository: {:?}", &real_path);
@@ -53,12 +56,15 @@ fn main() -> Result<()> {
             return Ok(());
         }
         SubCommand::Watch { directory: path } => {
+            // Check if the directory to add actually exists
             if !path.exists() || !path.is_dir() {
                 error!("Cannot find directory at {:?}", path);
             }
+
+            // Store the absolute path.
             let real_path = std::fs::canonicalize(&path)?;
             if !state.watched.contains(&real_path) {
-                println!("Watching repository: {:?}", &real_path);
+                println!("Watching folder: {:?}", &real_path);
                 state.watched.push(real_path);
             }
             state.scan()?;
