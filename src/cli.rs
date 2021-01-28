@@ -20,7 +20,7 @@ pub struct CliArguments {
 
 #[derive(Clap, Debug)]
 pub enum SubCommand {
-    /// Add a repository
+    /// Add one or more repositories to your watchlist
     Add {
         /// The repository that should be watched
         repos: Vec<PathBuf>,
@@ -28,21 +28,18 @@ pub enum SubCommand {
 
     /// Add a directory which should be searched for repositories.
     /// The maximum depths for this search is 5 subdirectories.
+    /// This repository will be searched for repos every time you run `update` or `check`.
     Watch {
         /// The directory that should be watched
         directory: PathBuf,
     },
 
-    /// Try a "git pull" for all repositories.
+    /// This is the main command of `geil`. This will:
+    /// - Fetch all branches from a remote
+    /// - Check stash sizes
+    /// - Check for local changes
+    /// - Update via fast-forward if possible
     Update {
-        /// Show all repositories and not only those that are somehow interesting
-        #[clap(short, long)]
-        all: bool,
-    },
-
-    /// Do a quick check on the current status of all repositories.
-    /// Doesn't alter anything. Only displays the current status.
-    Check {
         /// Show all repositories and not only those that are somehow interesting
         #[clap(short, long)]
         all: bool,

@@ -3,7 +3,7 @@ use std::env::vars;
 
 use anyhow::Result;
 use clap::Clap;
-use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressStyle};
 use log::error;
 use rayon::prelude::*;
 use simplelog::{Config, LevelFilter, SimpleLogger};
@@ -64,10 +64,6 @@ fn main() -> Result<()> {
             state.scan()?;
             return Ok(());
         }
-        SubCommand::Check { all } => {
-            state.scan()?;
-            show_all = all;
-        }
         SubCommand::Update { all } => {
             state.scan()?;
             show_all = all;
@@ -87,6 +83,7 @@ fn main() -> Result<()> {
         envs.insert(key, value);
     }
 
+    // Set up the styling for the progress bar.
     let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
     let bar = ProgressBar::new(repo_infos.len() as u64);
     bar.set_style(style);
