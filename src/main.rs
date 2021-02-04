@@ -89,22 +89,30 @@ fn main() -> Result<()> {
         envs.insert(key, value);
     }
 
-    // Set up the styling for the progress bar.
-    let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
-    let bar = ProgressBar::new(repo_infos.len() as u64);
-    bar.set_style(style);
-    bar.set_message("Checking repositories");
-    let results: Vec<Result<RepositoryInfo>> = repo_infos
-        .into_par_iter()
-        // Commend above and uncomment below for debug
-        //.into_iter()
-        .map(|repo_info| {
-            bar.inc(1);
-            handle_repo(repo_info, &envs)
-        })
-        .collect();
+    let mut results: Vec<Result<RepositoryInfo>>;
+    if opt.not_parallel {
+        results = Vec::new();
+        for repo_info in repo_infos.into_iter() {
+            results.push(handle_repo(repo_info, &envs));
+        }
+    } else {
+        // Set up the styling for the progress bar.
+        let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
+        let bar = ProgressBar::new(repo_infos.len() as u64);
+        bar.set_style(style);
+        bar.set_message("Checking repositories");
+        results = repo_infos
+            .into_par_iter()
+            // Commend above and uncomment below for debug
+            //.into_iter()
+            .map(|repo_info| {
+                bar.inc(1);
+                handle_repo(repo_info, &envs)
+            })
+            .collect();
 
-    bar.finish_with_message("All done: ");
+        bar.finish_with_message("All done: ");
+    }
 
     let mut repo_infos = Vec::new();
     for result in results {
