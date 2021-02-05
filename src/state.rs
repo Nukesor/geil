@@ -3,6 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, Context, Result};
+use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
@@ -89,9 +90,12 @@ impl State {
         // Check if a .git directory exists.
         // If it does, always stop searching.
         let git_dir = path.join(".git");
+        debug!("{} Looking at folder {:?}", depths, path);
         if git_dir.exists() {
+            debug!("Found .git folder");
             // Add the repository, if we don't know it yet.
             if !self.repositories.contains(path) {
+                println!("Found new repository: {:?}", path);
                 self.repositories.push(path.clone());
             }
             return Ok(());
@@ -99,6 +103,7 @@ impl State {
 
         // Recursion stop. Only check up to a dephts of 5
         if depths == 5 {
+            debug!("Max depth reached");
             return Ok(());
         }
 

@@ -36,7 +36,7 @@ pub enum SubCommand {
     /// This repository will be searched for repos every time you run `update` or `check`.
     Watch {
         /// The directory that should be watched
-        directory: PathBuf,
+        directories: Vec<PathBuf>,
     },
 
     /// This is the main command of `geil`. This will:

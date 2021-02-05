@@ -10,7 +10,7 @@ pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Resu
             .into_iter()
             .filter(|info| {
                 !matches!(info.state, RepositoryState::UpToDate)
-                    || !info.stashed == 0
+                    || info.stashed != 0
                     || matches!(info.state, RepositoryState::LocalChanges)
             })
             .collect();

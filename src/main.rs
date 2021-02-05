@@ -55,17 +55,19 @@ fn main() -> Result<()> {
             state.save()?;
             return Ok(());
         }
-        SubCommand::Watch { directory: path } => {
-            // Check if the directory to add actually exists
-            if !path.exists() || !path.is_dir() {
-                error!("Cannot find directory at {:?}", path);
-            }
+        SubCommand::Watch { directories } => {
+            for path in directories {
+                // Check if the directory to add actually exists
+                if !path.exists() || !path.is_dir() {
+                    error!("Cannot find directory at {:?}", path);
+                }
 
-            // Store the absolute path.
-            let real_path = std::fs::canonicalize(&path)?;
-            if !state.watched.contains(&real_path) {
-                println!("Watching folder: {:?}", &real_path);
-                state.watched.push(real_path);
+                // Store the absolute path.
+                let real_path = std::fs::canonicalize(&path)?;
+                if !state.watched.contains(&real_path) {
+                    println!("Watching folder: {:?}", &real_path);
+                    state.watched.push(real_path);
+                }
             }
             state.scan()?;
             return Ok(());
