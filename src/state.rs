@@ -78,7 +78,7 @@ impl State {
 
         // Do a full repository discovery on all watched repositories
         for watched in &self.watched.clone() {
-            self.discover(watched, 0)?;
+            self.discover(watched, 0);
         }
 
         self.save()?;
@@ -86,7 +86,7 @@ impl State {
         Ok(())
     }
 
-    pub fn discover(&mut self, path: &PathBuf, depths: usize) -> Result<()> {
+    pub fn discover(&mut self, path: &PathBuf, depths: usize) {
         // Check if a .git directory exists.
         // If it does, always stop searching.
         let git_dir = path.join(".git");
@@ -98,25 +98,46 @@ impl State {
                 println!("Found new repository: {:?}", path);
                 self.repositories.push(path.clone());
             }
-            return Ok(());
+            return;
         }
 
         // Recursion stop. Only check up to a dephts of 5
         if depths == 5 {
             debug!("Max depth reached");
-            return Ok(());
+            return;
         }
+
+        let current_dir = match read_dir(path) {
+            Ok(current_dir) => current_dir,
+            Err(err) => {
+                debug!(
+                    "Couldn't read directory at {:?} with error: {:?}",
+                    path, err
+                );
+                return;
+            }
+        };
 
         // The current path is no repository, search it's subdirectories
-        for dir_result in read_dir(path)? {
-            let dir = dir_result?.path();
-            if !dir.is_dir() {
-                continue;
-            }
-            self.discover(&dir, depths + 1)?;
-        }
+        for entry_result in current_dir {
+            match entry_result {
+                Ok(entry) => {
+                    let path = entry.path();
+                    if !path.is_dir() {
+                        continue;
+                    }
 
-        Ok(())
+                    self.discover(&path, depths + 1);
+                }
+                Err(err) => {
+                    debug!(
+                        "Couldn't read directory path {:?} with error: {:?}",
+                        path, err
+                    );
+                    continue;
+                }
+            }
+        }
     }
 }
 
