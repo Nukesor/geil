@@ -1,16 +1,13 @@
+# Geil
 
+![Geil screenshot](https://github.com/Nukesor/images/blob/master/geil.png)
 
-### Number of stashes
-git rev-list --walk-reflogs --count refs/stash
+A tool for updating all of your repositories and keeping them clean.
 
-### Git 
+## Features:
 
-`git fetch --all`:
-Changed:
-Receiving objects: 100%
-
-
-`git merge --ff-only`:
-Updating
-Already up to date
-fatal: Not possible to fast-forward
+- Watch folders for new repositories
+- Fetch new commits from remote
+- Fast-forward only update
+- Check git stash size for each repository
+- Check for local changes
