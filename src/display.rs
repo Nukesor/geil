@@ -27,11 +27,11 @@ pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Resu
 
     table.set_header(vec!["Path", "State", "Stash size"]);
     for info in repo_infos.iter() {
-        let mut row = Vec::new();
-        row.push(Cell::new(info.path.to_string_lossy().into_owned()));
-        row.push(format_state(&info.state));
-        row.push(format_number(info.stashed));
-        table.add_row(row);
+        table.add_row(vec![
+            Cell::new(info.path.to_string_lossy().into_owned()),
+            format_state(&info.state),
+            format_number(info.stashed),
+        ]);
     }
 
     println!("{}", table);

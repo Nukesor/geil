@@ -1,6 +1,6 @@
 use std::fs::{read_dir, File};
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use log::debug;
@@ -86,7 +86,7 @@ impl State {
         Ok(())
     }
 
-    pub fn discover(&mut self, path: &PathBuf, depths: usize) {
+    pub fn discover(&mut self, path: &Path, depths: usize) {
         // Check if a .git directory exists.
         // If it does, always stop searching.
         let git_dir = path.join(".git");
@@ -94,9 +94,10 @@ impl State {
         if git_dir.exists() {
             debug!("Found .git folder");
             // Add the repository, if we don't know it yet.
-            if !self.repositories.contains(path) {
+            let path = path.to_path_buf();
+            if !self.repositories.contains(&path) {
                 println!("Found new repository: {:?}", path);
-                self.repositories.push(path.clone());
+                self.repositories.push(path);
             }
             return;
         }

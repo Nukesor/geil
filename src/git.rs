@@ -11,10 +11,7 @@ pub fn handle_repo(
     mut repo_info: RepositoryInfo,
     envs: &HashMap<String, String>,
 ) -> Result<RepositoryInfo> {
-    info!(
-        "Checking repo: {}",
-        repo_info.path.clone().to_string_lossy()
-    );
+    info!("Checking repo: {}", repo_info.path.to_string_lossy());
     get_stashed_entries(&mut repo_info, &envs)?;
     fetch_repo(&mut repo_info, &envs)?;
     check_local_changes(&mut repo_info, &envs)?;
