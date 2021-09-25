@@ -14,7 +14,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 
-dirs = "3"
+dirs = "4"
 config = { version = "^0.11", default-features = false, features = ["yaml"] }
 
 log = "0.4"
@@ -27,7 +27,7 @@ indicatif = {version = "^0.16", features = ["rayon"]}
 rayon = "^1.5"
 
 comfy-table= "^4"
-crossterm = "^0.20"
+crossterm = "^0.21"
 clap = "3.0.0-beta.2"
 clap_generate = "3.0.0-beta.2"
 
