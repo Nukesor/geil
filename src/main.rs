@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env::vars;
 
 use anyhow::Result;
-use clap::Clap;
+use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::error;
 use rayon::prelude::*;
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
 
     let mut state = State::load()?;
 
-    let mut show_all = false;
+    let show_all;
     match opt.cmd {
         SubCommand::Add { repos } => {
             for path in repos {

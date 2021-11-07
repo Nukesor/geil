@@ -12,16 +12,16 @@ pub fn handle_repo(
     envs: &HashMap<String, String>,
 ) -> Result<RepositoryInfo> {
     info!("Checking repo: {}", repo_info.path.to_string_lossy());
-    get_stashed_entries(&mut repo_info, &envs)?;
-    fetch_repo(&mut repo_info, &envs)?;
-    check_local_changes(&mut repo_info, &envs)?;
+    get_stashed_entries(&mut repo_info, envs)?;
+    fetch_repo(&mut repo_info, envs)?;
+    check_local_changes(&mut repo_info, envs)?;
 
     // Skip update
     // We cannot merge with local changes anyway.
     if matches!(repo_info.state, RepositoryState::LocalChanges) {
         return Ok(repo_info);
     }
-    update_repo(&mut repo_info, &envs)?;
+    update_repo(&mut repo_info, envs)?;
 
     Ok(repo_info)
 }

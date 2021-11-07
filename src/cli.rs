@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
-use clap::Clap;
+use clap::Parser;
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(
     name = "Geil",
     about = "A git repository manager",
@@ -23,7 +23,7 @@ pub struct CliArguments {
     pub cmd: SubCommand,
 }
 
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 pub enum SubCommand {
     /// Add one or more repositories to your watchlist
     Add {
