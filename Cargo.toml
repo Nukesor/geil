@@ -15,10 +15,10 @@ edition = "2021"
 anyhow = "1"
 
 dirs = "4"
-config = { version = "^0.12", default-features = false, features = ["yaml"] }
+config = { version = "^0.13", default-features = false, features = ["yaml"] }
 
 log = "0.4"
-simplelog = { version = "0.11", default-features = false }
+simplelog = { version = "0.12", default-features = false }
 
 shellexpand = "^2"
 subprocess = "^0.2"
