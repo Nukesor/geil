@@ -40,13 +40,10 @@ impl State {
 impl State {
     /// Save a state to the disk.
     pub fn save(&self) -> Result<()> {
-        let serialized = bincode::serialize(self)
-            .context("Failed to serialize state. Please report this bug")?;
-
         let path = default_cache_path()?;
-        let mut file = File::create(path)?;
+        let file = File::create(path)?;
 
-        file.write_all(&serialized)?;
+        serde_cbor::to_writer(file, &self).context("Failed to write state to disk:")?;
 
         Ok(())
     }
@@ -60,7 +57,7 @@ impl State {
         }
 
         let file = File::open(path)?;
-        let state = bincode::deserialize_from(&file)?;
+        let state = serde_cbor::from_reader(file)?;
 
         Ok(state)
     }
