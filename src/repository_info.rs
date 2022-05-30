@@ -4,11 +4,14 @@ use strum_macros::Display;
 
 #[derive(Display)]
 pub enum RepositoryState {
+    Unknown,
+    Detached,
     UpToDate,
     Fetched,
     Updated,
     NoFastForward,
     LocalChanges,
+    NotPushed,
 }
 
 pub struct RepositoryInfo {
@@ -21,7 +24,7 @@ impl RepositoryInfo {
     pub fn new(path: PathBuf) -> RepositoryInfo {
         RepositoryInfo {
             path,
-            state: RepositoryState::UpToDate,
+            state: RepositoryState::Unknown,
             stashed: 0,
         }
     }

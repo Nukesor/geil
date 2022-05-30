@@ -8,11 +8,7 @@ pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Resu
     if !show_all {
         repo_infos = repo_infos
             .into_iter()
-            .filter(|info| {
-                !matches!(info.state, RepositoryState::UpToDate)
-                    || info.stashed != 0
-                    || matches!(info.state, RepositoryState::LocalChanges)
-            })
+            .filter(|info| !matches!(info.state, RepositoryState::UpToDate) || info.stashed != 0)
             .collect();
     }
 
@@ -41,11 +37,14 @@ pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Resu
 
 pub fn format_state(state: &RepositoryState) -> Cell {
     match state {
+        RepositoryState::Unknown => Cell::new("Unknown").fg(Color::Red),
+        RepositoryState::Detached => Cell::new("Detached HEAD").fg(Color::Yellow),
         RepositoryState::Updated => Cell::new("Updated").fg(Color::Green),
         RepositoryState::UpToDate => Cell::new("Up to date").fg(Color::DarkGreen),
         RepositoryState::Fetched => Cell::new("Fetched").fg(Color::Yellow),
         RepositoryState::NoFastForward => Cell::new("No fast forward").fg(Color::Red),
         RepositoryState::LocalChanges => Cell::new("Local changes").fg(Color::Red),
+        RepositoryState::NotPushed => Cell::new("Unpushed commits").fg(Color::Yellow),
     }
 }
 

@@ -14,11 +14,6 @@ pub struct CliArguments {
     #[clap(short, long, parse(from_occurrences))]
     pub verbose: u8,
 
-    /// Don't run git commands in parallel
-    /// This is useful in combination with the verbose flag for debugging.
-    #[clap(short, long)]
-    pub not_parallel: bool,
-
     #[clap(subcommand)]
     pub cmd: SubCommand,
 }
@@ -48,5 +43,14 @@ pub enum SubCommand {
         /// Show all repositories and not only those that are somehow interesting
         #[clap(short, long)]
         all: bool,
+
+        /// Don't run repository checks in parallel
+        /// This is useful in combination with the verbose flag for debugging.
+        #[clap(short, long)]
+        not_parallel: bool,
+
+        /// The amount of threads that should run in parallel for checking repositories.
+        #[clap(short, long)]
+        threads: Option<usize>,
     },
 }
