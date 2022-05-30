@@ -1,15 +1,31 @@
 use std::fs::{read_dir, File};
-use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Repository {
+    /// The path to the repository
+    pub path: PathBuf,
+    /// The time it took to check this repository in the last run.
+    pub check_time: Option<usize>,
+}
+
+impl Repository {
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            check_time: None,
+        }
+    }
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct State {
     pub watched: Vec<PathBuf>,
-    pub repositories: Vec<PathBuf>,
+    pub repositories: Vec<Repository>,
 }
 
 impl State {
@@ -63,14 +79,14 @@ impl State {
 
         // Go through all repositories and check if they still exist
         for key in (0..self.repositories.len()).rev() {
-            if !self.repositories[key].exists()
-                || !self.repositories[key].is_dir()
-                || !self.repositories[key].join(".git").exists()
-                || !self.repositories[key].join(".git").is_dir()
+            if !self.repositories[key].path.exists()
+                || !self.repositories[key].path.is_dir()
+                || !self.repositories[key].path.join(".git").exists()
+                || !self.repositories[key].path.join(".git").is_dir()
             {
                 println!(
                     "Repository does no longer exist: {:?}",
-                    &self.repositories[key]
+                    &self.repositories[key].path
                 );
                 self.repositories.remove(key);
             }
@@ -86,6 +102,10 @@ impl State {
         Ok(())
     }
 
+    pub fn has_repo_at_path(&self, path: &Path) -> bool {
+        self.repositories.iter().any(|repo| repo.path == path)
+    }
+
     pub fn discover(&mut self, path: &Path, depths: usize) {
         // Check if a .git directory exists.
         // If it does, always stop searching.
@@ -95,9 +115,9 @@ impl State {
             debug!("Found .git folder");
             // Add the repository, if we don't know it yet.
             let path = path.to_path_buf();
-            if !self.repositories.contains(&path) {
+            if !self.has_repo_at_path(&path) {
                 println!("Found new repository: {:?}", path);
-                self.repositories.push(path);
+                self.repositories.push(Repository::new(path));
             }
             return;
         }

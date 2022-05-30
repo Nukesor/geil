@@ -2,7 +2,7 @@ use std::env::vars;
 use std::time::Instant;
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::{debug, error};
@@ -60,9 +60,9 @@ fn add(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
 
         // Store the absolute path.
         let real_path = std::fs::canonicalize(&path)?;
-        if !state.repositories.contains(&real_path) {
+        if !state.has_repo_at_path(&real_path) {
             println!("Added repository: {:?}", &real_path);
-            state.repositories.push(real_path);
+            state.repositories.push(Repository::new(real_path));
         }
     }
     state.save()
@@ -85,11 +85,16 @@ fn watch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
     state.scan()
 }
 
-fn update(state: State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
+fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
+    // First we order the repositories by check time (from the last run).
+    // Repositories with long running checks will be executed first.
+    let mut repos = state.repositories.clone();
+    repos.sort_by(|a, b| b.check_time.cmp(&a.check_time));
+
     // We create a struct for our internal representation for each repository
     let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
-    for path in state.repositories.iter() {
-        let repository_info = RepositoryInfo::new(path.clone());
+    for repo in repos {
+        let repository_info = RepositoryInfo::new(repo.path.clone());
         repo_infos.push(repository_info);
     }
 
@@ -99,8 +104,7 @@ fn update(state: State, show_all: bool, parallel: bool, threads: Option<usize>) 
         envs.insert(key, value);
     }
 
-    let mut results: Vec<Result<RepositoryInfo>>;
-    if parallel {
+    let repo_infos = if parallel {
         // Set up the styling for the progress bar.
         let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
         let bar = ProgressBar::new(repo_infos.len() as u64);
@@ -115,28 +119,48 @@ fn update(state: State, show_all: bool, parallel: bool, threads: Option<usize>) 
 
         bar.set_style(style);
         bar.set_message("Checking repositories");
-        results = repo_infos
+        let results: Result<Vec<RepositoryInfo>> = repo_infos
             .into_par_iter()
             .map(|repo_info| {
                 bar.inc(1);
-                handle_repo(repo_info, &envs)
+
+                // Handle the repository and track execution time.
+                let start = Instant::now();
+                let mut repo_info = handle_repo(repo_info, &envs)?;
+                repo_info.check_time = Some(start.elapsed().as_millis() as usize);
+
+                Ok(repo_info)
             })
             .collect();
 
         bar.finish_with_message("All done: ");
-    } else {
-        results = Vec::new();
-        for repo_info in repo_infos.into_iter() {
-            let start = Instant::now();
-            results.push(handle_repo(repo_info, &envs));
-            debug!("Check took {}ms", start.elapsed().as_millis());
-        }
-    }
 
-    let mut repo_infos = Vec::new();
-    for result in results {
-        repo_infos.push(result?);
+        results?
+    } else {
+        let mut results = Vec::new();
+        for repo_info in repo_infos.into_iter() {
+            // Handle the repository and track execution time.
+            let start = Instant::now();
+            let mut repo_info = handle_repo(repo_info, &envs)?;
+            repo_info.check_time = Some(start.elapsed().as_millis() as usize);
+
+            debug!("Check took {}ms", start.elapsed().as_millis());
+            results.push(repo_info);
+        }
+
+        results
+    };
+
+    for info in repo_infos.iter() {
+        let repo = state
+            .repositories
+            .iter_mut()
+            .find(|r| r.path == info.path)
+            .context("Expect repository to be there")?;
+
+        repo.check_time = info.check_time;
     }
+    state.save()?;
 
     print_status(repo_infos, show_all)?;
 

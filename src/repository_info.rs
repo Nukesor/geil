@@ -18,6 +18,8 @@ pub struct RepositoryInfo {
     pub path: PathBuf,
     pub state: RepositoryState,
     pub stashed: usize,
+    /// The time (ms) it took to check the repo.
+    pub check_time: Option<usize>,
 }
 
 impl RepositoryInfo {
@@ -26,6 +28,7 @@ impl RepositoryInfo {
             path,
             state: RepositoryState::Unknown,
             stashed: 0,
+            check_time: None,
         }
     }
 }
