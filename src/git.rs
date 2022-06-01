@@ -124,14 +124,6 @@ pub fn check_unpushed_commits(
     repo_info: &mut RepositoryInfo,
     envs: &HashMap<String, String>,
 ) -> Result<()> {
-    // Get all remotes for this repository
-    let capture_data = cmd!("git remote")
-        .cwd(repo_info.path.clone())
-        .env(envs.clone())
-        .run()?;
-    let remotes = String::from_utf8_lossy(&capture_data.stdout);
-    let remotes = remotes.trim();
-
     let capture_data = cmd!("git rev-parse --abbrev-ref HEAD")
         .cwd(repo_info.path.clone())
         .env(envs.clone())
@@ -154,23 +146,21 @@ pub fn check_unpushed_commits(
     let local_hash = local_hash.trim();
 
     // Check if all remotes have been pushed.
-    for remote in remotes.lines() {
-        debug!("Checking {remote}/{current_branch}");
-        let capture_data = cmd!("git rev-parse {remote}/{current_branch}")
-            .cwd(repo_info.path.clone())
-            .env(envs.clone())
-            .run()?;
-        let remote_hash = String::from_utf8_lossy(&capture_data.stdout);
-        let remote_hash = remote_hash.trim();
+    debug!("Checking origin/{current_branch}");
+    let capture_data = cmd!("git rev-parse origin/{current_branch}")
+        .cwd(repo_info.path.clone())
+        .env(envs.clone())
+        .run()?;
+    let remote_hash = String::from_utf8_lossy(&capture_data.stdout);
+    let remote_hash = remote_hash.trim();
 
-        // The hashes differ. Since the branch is already UpToDate at this state,
-        // this (most likely) means the rpeository has unpushed changes.
-        debug!("Local hash: {local_hash}, Remote: {remote_hash}");
-        if local_hash != remote_hash {
-            info!("Found unpushed commits!");
-            repo_info.state = RepositoryState::NotPushed;
-            return Ok(());
-        }
+    // The hashes differ. Since the branch is already UpToDate at this state,
+    // this (most likely) means the rpeository has unpushed changes.
+    debug!("Local hash: {local_hash}, Remote: {remote_hash}");
+    if local_hash != remote_hash {
+        info!("Found unpushed commits!");
+        repo_info.state = RepositoryState::NotPushed;
+        return Ok(());
     }
 
     info!("No unpushed commits");
