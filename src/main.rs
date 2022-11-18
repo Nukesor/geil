@@ -106,7 +106,9 @@ fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usiz
 
     let repo_infos = if parallel {
         // Set up the styling for the progress bar.
-        let style = ProgressStyle::default_bar().template("{msg}: {wide_bar} {pos}/{len}");
+        let style = ProgressStyle::default_bar()
+            .template("{msg}: {wide_bar} {pos}/{len}")
+            .context("Wrong context indicatif style.")?;
         let bar = ProgressBar::new(repo_infos.len() as u64);
 
         // Set the amount of threads, if specified.
