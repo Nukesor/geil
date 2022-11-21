@@ -6,10 +6,8 @@ use crate::repository_info::{RepositoryInfo, RepositoryState};
 pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Result<()> {
     // Filter all repos that don't need attention.
     if !show_all {
-        repo_infos = repo_infos
-            .into_iter()
-            .filter(|info| !matches!(info.state, RepositoryState::UpToDate) || info.stashed != 0)
-            .collect();
+        repo_infos
+            .retain(|info| !matches!(info.state, RepositoryState::UpToDate) || info.stashed != 0);
     }
 
     if repo_infos.is_empty() {
