@@ -14,6 +14,7 @@ mod display;
 mod git;
 mod process;
 mod repository_info;
+mod ssh_key;
 mod state;
 
 use cli::*;
@@ -48,6 +49,7 @@ fn main() -> Result<()> {
             state.scan()?;
             update(state, all, !not_parallel, threads)
         }
+        SubCommand::Keys { cmd } => ssh_key::handle_key_command(state, cmd),
     }
 }
 

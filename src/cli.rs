@@ -53,4 +53,27 @@ pub enum SubCommand {
         #[clap(short, long)]
         threads: Option<usize>,
     },
+
+    /// The nested key subcommand
+    Keys {
+        #[clap(subcommand)]
+        cmd: KeysCmd,
+    },
+}
+
+#[derive(Parser, Debug)]
+pub enum KeysCmd {
+    /// Add one or more repositories to your watchlist
+    Add {
+        /// The name you want to give the key.
+        name: String,
+        /// The absolute path to the private key.
+        path: PathBuf,
+    },
+
+    /// List all known keys.
+    List,
+
+    /// Remove a string by name.
+    Remove { name: String },
 }

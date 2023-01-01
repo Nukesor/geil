@@ -22,10 +22,20 @@ impl Repository {
     }
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SshKey {
+    /// The name of the key
+    pub name: String,
+    /// The path to the private key.
+    pub path: PathBuf,
+}
+
 #[derive(Deserialize, Serialize)]
 pub struct State {
     pub watched: Vec<PathBuf>,
     pub repositories: Vec<Repository>,
+    #[serde(default = "Default::default")]
+    pub keys: Vec<SshKey>,
 }
 
 impl State {
@@ -33,6 +43,7 @@ impl State {
         State {
             watched: Vec::new(),
             repositories: Vec::new(),
+            keys: Vec::new(),
         }
     }
 }

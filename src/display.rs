@@ -28,7 +28,7 @@ pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Resu
         ]);
     }
 
-    println!("{}", table);
+    println!("{table}");
 
     Ok(())
 }
