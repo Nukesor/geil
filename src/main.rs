@@ -21,6 +21,7 @@ use cli::*;
 use display::*;
 use git::*;
 use repository_info::*;
+use ssh_key::load_keys;
 use state::*;
 
 fn main() -> Result<()> {
@@ -47,6 +48,7 @@ fn main() -> Result<()> {
             threads,
         } => {
             state.scan()?;
+            load_keys(&state)?;
             update(state, all, !not_parallel, threads)
         }
         SubCommand::Keys { cmd } => ssh_key::handle_key_command(state, cmd),
