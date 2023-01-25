@@ -124,7 +124,7 @@ impl State {
             // Add the repository, if we don't know it yet.
             let path = path.to_path_buf();
             if !self.has_repo_at_path(&path) {
-                println!("Found new repository: {:?}", path);
+                println!("Found new repository: {path:?}");
                 self.repositories.push(Repository::new(path));
             }
             return;
