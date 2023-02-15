@@ -156,6 +156,12 @@ pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String
     if stdout.contains("Updating") {
         info!("{name}: Fast forward succeeded");
         repo_info.state = RepositoryState::Updated;
+
+        // Update any submodules if this worked out.
+        let submodule_update = cmd!("git submodule update --init --recursive")
+            .cwd(repo_info.path.clone())
+            .env(envs.clone());
+        submodule_update.run()?;
     } else if stdout.contains("up to date") {
         info!("{name}: Already up to date");
         repo_info.state = RepositoryState::UpToDate;
