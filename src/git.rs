@@ -21,7 +21,7 @@ pub fn handle_repo(
         ProgressStyle::with_template("{duration} {spinner} {prefix:.bold.white.dim} - {wide_msg}")
             .unwrap()
             .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
-    bar.set_style(spinner_style.clone());
+    bar.set_style(spinner_style);
 
     // Add the bar to the end of the multi_bar.
     bar = multi_bar.add(bar);
