@@ -1,9 +1,8 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
 use anyhow::Result;
-use indicatif::MultiProgress;
-use indicatif::ProgressBar;
-use indicatif::ProgressStyle;
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, info};
 
 use crate::cmd;
@@ -18,18 +17,23 @@ pub fn handle_repo(
     envs: &HashMap<String, String>,
 ) -> Result<RepositoryInfo> {
     let mut bar = ProgressBar::new(5);
-    let spinner_style = ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
-        .unwrap()
-        .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+    let spinner_style =
+        ProgressStyle::with_template("{duration} {spinner} {prefix:.bold.white.dim} - {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
     bar.set_style(spinner_style.clone());
 
     // Add the bar to the end of the multi_bar.
     bar = multi_bar.add(bar);
 
+    // Enable a steady tick after adding it to the bar, to ensure correct position rendering.
+    bar.enable_steady_tick(Duration::from_millis(125));
+
     // Run the actual repo handling logic.
     let result = handle_repo_inner(&bar, repo_info, envs);
 
     // Clean up this repo's progress bar.
+    bar.disable_steady_tick();
     bar.finish();
     multi_bar.remove(&bar);
 
@@ -43,16 +47,16 @@ pub fn handle_repo_inner(
 ) -> Result<RepositoryInfo> {
     let name = repo_info.name.clone();
 
-    bar.set_prefix("[1/5]");
-    bar.set_message(format!("{name:?}: Checking stash"));
+    bar.set_prefix(format!("[1/5] - {name}"));
+    bar.set_message(format!("{name}: Checking stash"));
     get_stashed_entries(&mut repo_info, envs)?;
 
-    bar.set_prefix("[2/5]");
-    bar.set_message(format!("{name:?}: Fetch from remote"));
+    bar.set_prefix(format!("[2/5] - {name}"));
+    bar.set_message(format!("{name}: Fetch from remote"));
     fetch_repo(&mut repo_info, envs)?;
 
-    bar.set_prefix("[3/5]");
-    bar.set_message(format!("{name:?}: Check for local changes"));
+    bar.set_prefix(format!("[3/5] - {name}"));
+    bar.set_message(format!("{name}: Check for local changes"));
     check_local_changes(&mut repo_info, envs)?;
 
     // Skip update
@@ -60,12 +64,13 @@ pub fn handle_repo_inner(
     if matches!(repo_info.state, RepositoryState::LocalChanges) {
         return Ok(repo_info);
     }
-    bar.set_prefix("[4/5]");
-    bar.set_message(format!("{name:?}: Try to fast forward"));
+
+    bar.set_prefix(format!("[4/5] - {name}"));
+    bar.set_message(format!("{name}: Try to fast forward"));
     update_repo(&mut repo_info, envs)?;
 
-    bar.set_prefix("[5/5]");
-    bar.set_message(format!("{name:?}: Check for unpushed commits"));
+    bar.set_prefix(format!("[5/5] - {name}"));
+    bar.set_message(format!("{name}: Check for unpushed commits"));
     if matches!(repo_info.state, RepositoryState::UpToDate) {
         check_unpushed_commits(&mut repo_info, envs)?;
     }
