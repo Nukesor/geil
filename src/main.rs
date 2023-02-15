@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::{debug, error};
 use rayon::prelude::*;
 use simplelog::{Config, LevelFilter, SimpleLogger};
@@ -108,13 +108,26 @@ fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usiz
         envs.insert(key, value);
     }
 
-    let repo_infos = if parallel {
-        // Set up the styling for the progress bar.
-        let style = ProgressStyle::default_bar()
-            .template("{msg}: {wide_bar} {pos}/{len}")
-            .context("Wrong context indicatif style.")?;
-        let bar = ProgressBar::new(repo_infos.len() as u64);
+    let multi_bar = MultiProgress::new();
 
+    // Get the power of the repository count.
+    // format the progress count based on that count, otherwise we get unwanted line breaks.
+    let power = repo_infos.len().checked_ilog10().unwrap_or(1) + 1;
+
+    // Set up the styling for the "main" progress bar.
+    let template = &format!("Checking repositories: {{wide_bar}} {{pos:>{power}}}/{{len:{power}}}");
+    let style = ProgressStyle::default_bar()
+        .template(template)
+        .context("Wrong context indicatif style.")?;
+    let mut main_bar = ProgressBar::new(repo_infos.len() as u64);
+    main_bar.set_style(style);
+
+    // Add the main bar to the multi_bar at the last possible position.
+    main_bar = multi_bar.insert(0, main_bar);
+    // Tick once to immediately show it.
+    main_bar.tick();
+
+    let repo_infos = if parallel {
         // Set the amount of threads, if specified.
         if let Some(threads) = threads {
             rayon::ThreadPoolBuilder::new()
@@ -123,23 +136,27 @@ fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usiz
                 .unwrap();
         }
 
-        bar.set_style(style);
-        bar.set_message("Checking repositories");
         let results: Result<Vec<RepositoryInfo>> = repo_infos
             .into_par_iter()
-            .map(|repo_info| {
-                bar.inc(1);
-
+            .map(|mut repo_info| {
                 // Handle the repository and track execution time.
                 let start = Instant::now();
-                let mut repo_info = handle_repo(repo_info, &envs)?;
+                repo_info = match handle_repo(&multi_bar, repo_info, &envs) {
+                    Ok(repo_info) => repo_info,
+                    Err(err) => {
+                        // Make sure the bar gets incremented even if we get an error.
+                        main_bar.inc(1);
+                        return Err(err);
+                    }
+                };
                 repo_info.check_time = Some(start.elapsed().as_millis() as usize);
 
+                main_bar.inc(1);
                 Ok(repo_info)
             })
             .collect();
 
-        bar.finish_with_message("All done: ");
+        main_bar.finish_with_message("All done: ");
 
         results?
     } else {
@@ -147,7 +164,7 @@ fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usiz
         for repo_info in repo_infos.into_iter() {
             // Handle the repository and track execution time.
             let start = Instant::now();
-            let mut repo_info = handle_repo(repo_info, &envs)?;
+            let mut repo_info = handle_repo(&multi_bar, repo_info, &envs)?;
             repo_info.check_time = Some(start.elapsed().as_millis() as usize);
 
             debug!("Check took {}ms", start.elapsed().as_millis());
@@ -156,6 +173,9 @@ fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usiz
 
         results
     };
+
+    main_bar.finish();
+    let _ = multi_bar.clear();
 
     for info in repo_infos.iter() {
         let repo = state

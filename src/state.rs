@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{anyhow, Context, Result};
 use log::debug;
 use serde_derive::{Deserialize, Serialize};
+use serde_with::{serde_as, DefaultOnError};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Repository {
@@ -30,9 +31,11 @@ pub struct SshKey {
     pub path: PathBuf,
 }
 
+#[serde_as]
 #[derive(Deserialize, Serialize)]
 pub struct State {
     pub watched: Vec<PathBuf>,
+    #[serde_as(deserialize_as = "DefaultOnError")]
     pub repositories: Vec<Repository>,
     #[serde(default = "Default::default")]
     pub keys: Vec<SshKey>,
