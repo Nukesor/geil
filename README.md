@@ -1,6 +1,8 @@
 # Geil
 
-![Geil screenshot](https://github.com/Nukesor/images/blob/master/geil.png)
+<p align="center">
+    <img src="https://github.com/Nukesor/images/blob/main/geil.gif?raw=true">
+</p>
 
 A tool for updating all of your repositories and keeping them clean.
 
