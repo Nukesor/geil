@@ -26,10 +26,23 @@ pub enum SubCommand {
         repos: Vec<PathBuf>,
     },
 
+    /// Remove a repository from the list of known repositories.
+    /// Note: The repository will be re-added if it's inside a watched folder!
+    Remove {
+        /// The repositories that should be removed
+        repos: Vec<PathBuf>,
+    },
+
     /// Add a directory which should be searched for repositories.
     /// The maximum depths for this search is 5 subdirectories.
     /// This repository will be searched for repos every time you run `update` or `check`.
     Watch {
+        /// The directory that should be watched
+        directories: Vec<PathBuf>,
+    },
+
+    /// Unwatch folders and remove all repositories that can be found inside
+    Unwatch {
         /// The directory that should be watched
         directories: Vec<PathBuf>,
     },

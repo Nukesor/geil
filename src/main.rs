@@ -41,7 +41,9 @@ fn main() -> Result<()> {
 
     match opt.cmd {
         SubCommand::Add { repos } => add(state, repos),
+        SubCommand::Remove { repos } => remove(state, repos),
         SubCommand::Watch { directories } => watch(state, directories),
+        SubCommand::Unwatch { directories } => unwatch(state, directories),
         SubCommand::Update {
             all,
             not_parallel,
@@ -56,6 +58,15 @@ fn main() -> Result<()> {
 }
 
 fn add(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
+    // Just print the known repositories, if no arguments have been supplied.
+    if repos.is_empty() {
+        println!("Watched repositories:");
+        for repo in state.repositories {
+            println!("  - {:?}", repo.path);
+        }
+        return Ok(());
+    }
+
     for path in repos {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
@@ -72,7 +83,38 @@ fn add(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
     state.save()
 }
 
+fn remove(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
+    for path in repos {
+        // Check if the directory to add actually exists
+        if !path.exists() || !path.is_dir() {
+            error!("Cannot find repository at {:?}", path);
+        }
+
+        // Store the absolute path.
+        let real_path = std::fs::canonicalize(&path)?;
+        if !state.has_repo_at_path(&real_path) {
+            error!(
+                "The repository at {:?} hasn't been added to geil yet.",
+                path
+            );
+        } else {
+            println!("Forgetting about repository: {:?}", &real_path);
+            state.repositories.retain(|repo| repo.path != real_path);
+        }
+    }
+    state.save()
+}
+
 fn watch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
+    // Just print the watched folders, if no arguments have been supplied.
+    if directories.is_empty() {
+        println!("Watched folders");
+        for dir in state.watched {
+            println!("  - {dir:?}");
+        }
+        return Ok(());
+    }
+
     for path in directories {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
@@ -86,7 +128,39 @@ fn watch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
             state.watched.push(real_path);
         }
     }
+
     state.scan()
+}
+
+fn unwatch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
+    for path in directories {
+        // Check if the directory to add actually exists
+        if !path.exists() || !path.is_dir() {
+            error!("Cannot find directory at {:?}", path);
+        }
+
+        // Get the absolute path
+        let real_path = std::fs::canonicalize(&path)?;
+        if !state.watched.contains(&real_path) {
+            error!("The folder hasn't been watched: {:?}", &real_path);
+        } else {
+            println!("Unwatching path : {:?}", &real_path);
+            state.watched.retain(|path| path != &real_path);
+
+            // Scan the watched path for repositories, so we can forget about them
+            let mut repos = Vec::new();
+            discover(&real_path, 0, &mut repos);
+
+            for repo_to_remove in repos {
+                println!("Forgetting about repository: {:?}", repo_to_remove.path);
+                state
+                    .repositories
+                    .retain(|repo| repo.path != repo_to_remove.path);
+            }
+        }
+    }
+
+    state.save()
 }
 
 fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
