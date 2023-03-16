@@ -32,10 +32,11 @@ Take a look at the commandline options of each command via the `--help` flag, e.
 
 ## SSH Keychain
 
-If your SSH key is password protected, `geil` needs those keys' to be in a keychain.
-There's no support to ask for the password and us it only in the scope of the current run yet.
+If your SSH key is password protected, `geil` needs that key to be in your keychain.
+It's not yet supported to ask for the password and use it only in the scope of the current run.
 
-**But** `geil` can check if a list of known keys has been added to `ssh-agent` and if a key is not, it will call the command to add it to the keychain for you.
+**But** `geil` can check if a list of known keys has been added to `ssh-agent`.
+If one of those keys isn't added yet, it will call the command to add it to the keychain for you.
 
 To enable this behavior, just run `geil keys add $path_to_private_keyfile`. \
 You can take a look at the registered keys via `geil keys list`.
