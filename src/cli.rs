@@ -47,6 +47,13 @@ pub enum SubCommand {
         directories: Vec<PathBuf>,
     },
 
+    /// Ignore a specific repository.
+    /// This can be useful, if you want to ignore a specific directory inside a watched directory.
+    Ignore {
+        /// The directory that should be ignored
+        directories: Vec<PathBuf>,
+    },
+
     /// This is the main command of `geil`. This will:
     /// - Fetch all branches from a remote
     /// - Check stash sizes

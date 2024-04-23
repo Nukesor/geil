@@ -40,10 +40,11 @@ fn main() -> Result<()> {
     let mut state = State::load()?;
 
     match opt.cmd {
-        SubCommand::Add { repos } => add(state, repos),
-        SubCommand::Remove { repos } => remove(state, repos),
-        SubCommand::Watch { directories } => watch(state, directories),
-        SubCommand::Unwatch { directories } => unwatch(state, directories),
+        SubCommand::Add { repos } => add(&mut state, repos),
+        SubCommand::Remove { repos } => remove(&mut state, repos),
+        SubCommand::Watch { directories } => watch(&mut state, &directories),
+        SubCommand::Unwatch { directories } => unwatch(&mut state, &directories),
+        SubCommand::Ignore { directories } => ignore(&mut state, &directories),
         SubCommand::Update {
             all,
             not_parallel,
@@ -51,17 +52,17 @@ fn main() -> Result<()> {
         } => {
             state.scan()?;
             load_keys(&state)?;
-            update(state, all, !not_parallel, threads)
+            update(&mut state, all, !not_parallel, threads)
         }
         SubCommand::Keys { cmd } => ssh_key::handle_key_command(state, cmd),
     }
 }
 
-fn add(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
+fn add(state: &mut State, repos: Vec<PathBuf>) -> Result<()> {
     // Just print the known repositories, if no arguments have been supplied.
     if repos.is_empty() {
         println!("Watched repositories:");
-        for repo in state.repositories {
+        for repo in state.repositories.iter() {
             println!("  - {:?}", repo.path);
         }
         return Ok(());
@@ -83,11 +84,12 @@ fn add(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
     state.save()
 }
 
-fn remove(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
+fn remove(state: &mut State, repos: Vec<PathBuf>) -> Result<()> {
     for path in repos {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
             error!("Cannot find repository at {:?}", path);
+            continue;
         }
 
         // Store the absolute path.
@@ -105,11 +107,11 @@ fn remove(mut state: State, repos: Vec<PathBuf>) -> Result<()> {
     state.save()
 }
 
-fn watch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
+fn watch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     // Just print the watched folders, if no arguments have been supplied.
     if directories.is_empty() {
         println!("Watched folders");
-        for dir in state.watched {
+        for dir in state.watched.iter() {
             println!("  - {dir:?}");
         }
         return Ok(());
@@ -132,11 +134,12 @@ fn watch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
     state.scan()
 }
 
-fn unwatch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
+fn unwatch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     for path in directories {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
             error!("Cannot find directory at {:?}", path);
+            continue;
         }
 
         // Get the absolute path
@@ -149,7 +152,7 @@ fn unwatch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
 
             // Scan the watched path for repositories, so we can forget about them
             let mut repos = Vec::new();
-            discover(&real_path, 0, &mut repos);
+            discover(&state.ignored, &real_path, 0, &mut repos);
 
             for repo_to_remove in repos {
                 println!("Forgetting about repository: {:?}", repo_to_remove.path);
@@ -163,7 +166,47 @@ fn unwatch(mut state: State, directories: Vec<PathBuf>) -> Result<()> {
     state.save()
 }
 
-fn update(mut state: State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
+/// Explicitly ignore a given directory.
+/// No repositories will be updated or discovered, even if it's inside a watched directory.
+fn ignore(state: &mut State, directories: &[PathBuf]) -> Result<()> {
+    // First, unwatch in case any of them have been actively watched.
+    // This also explicitly removes any repositories that were tracked.
+    unwatch(state, directories)?;
+
+    for path in directories.iter() {
+        // Check if the directory to add actually exists
+        if !path.exists() || !path.is_dir() {
+            error!("Cannot find directory at {:?}", path);
+            continue;
+        }
+
+        // Get the absolute path
+        let real_path = std::fs::canonicalize(&path)?;
+
+        if state.ignored.contains(&real_path) {
+            error!("The folder is already ignored: {:?}", &real_path);
+            continue;
+        }
+
+        // Scan the watched path for repositories, so we can forget about them
+        let mut repos = Vec::new();
+        discover(&state.ignored, &real_path, 0, &mut repos);
+
+        for repo_to_remove in repos {
+            println!("Forgetting about repository: {:?}", repo_to_remove.path);
+            state
+                .repositories
+                .retain(|repo| repo.path != repo_to_remove.path);
+        }
+
+        println!("Ignoring directory: {:?}", real_path);
+        state.ignored.push(real_path.to_owned())
+    }
+
+    state.save()
+}
+
+fn update(state: &mut State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
     // First we order the repositories by check time (from the last run).
     // Repositories with long running checks will be executed first.
     let mut repos = state.repositories.clone();

@@ -34,7 +34,11 @@ pub struct SshKey {
 #[serde_as]
 #[derive(Deserialize, Serialize)]
 pub struct State {
+    /// All paths that're actively watched for new repositories
     pub watched: Vec<PathBuf>,
+    /// All paths that're explicitly ignored.
+    #[serde(default = "Default::default")]
+    pub ignored: Vec<PathBuf>,
     #[serde_as(deserialize_as = "DefaultOnError")]
     pub repositories: Vec<Repository>,
     #[serde(default = "Default::default")]
@@ -44,6 +48,7 @@ pub struct State {
 impl State {
     pub fn new() -> State {
         State {
+            ignored: Vec::new(),
             watched: Vec::new(),
             repositories: Vec::new(),
             keys: Vec::new(),
@@ -106,7 +111,7 @@ impl State {
         // Do a full repository discovery on all watched repositories
         for watched in &self.watched.clone() {
             let mut new_repos = Vec::new();
-            discover(watched, 0, &mut new_repos);
+            discover(&self.ignored, watched, 0, &mut new_repos);
             for repo in new_repos {
                 if !self.has_repo_at_path(&repo.path) {
                     println!("Found new repository: {:?}", repo.path);
@@ -126,7 +131,16 @@ impl State {
 }
 
 /// Discover repositories inside a given folder.
-pub fn discover(path: &Path, depths: usize, new_repos: &mut Vec<Repository>) {
+pub fn discover(
+    ignored_paths: &[PathBuf],
+    path: &Path,
+    depths: usize,
+    new_repos: &mut Vec<Repository>,
+) {
+    if ignored_paths.contains(&path.to_path_buf()) {
+        return;
+    }
+
     // Check if a .git directory exists.
     // If it does, always stop searching.
     let git_dir = path.join(".git");
@@ -164,7 +178,7 @@ pub fn discover(path: &Path, depths: usize, new_repos: &mut Vec<Repository>) {
                     continue;
                 }
 
-                discover(&path, depths + 1, new_repos);
+                discover(ignored_paths, &path, depths + 1, new_repos);
             }
             Err(err) => {
                 debug!(
