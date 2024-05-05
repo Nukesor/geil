@@ -13,7 +13,7 @@ edition = "2021"
 anyhow = "1"
 clap = { version = "4", features = ["derive", "cargo"] }
 comfy-table = "7"
-config = { version = "0.13", default-features = false, features = ["yaml"] }
+config = { version = "0.14", default-features = false, features = ["yaml"] }
 crossterm = "0.27"
 dirs = "5"
 indicatif = { version = "0.17", features = ["rayon"] }
@@ -25,6 +25,6 @@ serde_derive = "1"
 serde_with = "3"
 shellexpand = "3"
 simplelog = { version = "0.12", default-features = false }
-strum = "0.25"
-strum_macros = "0.25"
+strum = "0.26"
+strum_macros = "0.26"
 subprocess = "0.2"
