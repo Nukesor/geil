@@ -124,7 +124,7 @@ fn watch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
         }
 
         // Store the absolute path.
-        let real_path = std::fs::canonicalize(&path)?;
+        let real_path = std::fs::canonicalize(path)?;
         if !state.watched.contains(&real_path) {
             println!("Watching folder: {:?}", &real_path);
             state.watched.push(real_path);
@@ -143,7 +143,7 @@ fn unwatch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
         }
 
         // Get the absolute path
-        let real_path = std::fs::canonicalize(&path)?;
+        let real_path = std::fs::canonicalize(path)?;
         if !state.watched.contains(&real_path) {
             error!("The folder hasn't been watched: {:?}", &real_path);
         } else {
@@ -181,7 +181,7 @@ fn ignore(state: &mut State, directories: &[PathBuf]) -> Result<()> {
         }
 
         // Get the absolute path
-        let real_path = std::fs::canonicalize(&path)?;
+        let real_path = std::fs::canonicalize(path)?;
 
         if state.ignored.contains(&real_path) {
             error!("The folder is already ignored: {:?}", &real_path);
