@@ -6,6 +6,8 @@ use log::debug;
 use serde_derive::{Deserialize, Serialize};
 use serde_with::{serde_as, DefaultOnError};
 
+use crate::repository_info::RepositoryInfo;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Repository {
     /// The path to the repository
@@ -127,6 +129,41 @@ impl State {
 
     pub fn has_repo_at_path(&self, path: &Path) -> bool {
         self.repositories.iter().any(|repo| repo.path == path)
+    }
+
+    /// Create a list of [RepositoryInfo]s for internal processing, based on the list
+    /// of known Git repositories.
+    ///
+    /// Order the repositories by check wall time from the last run.
+    /// Repositories with long running checks will be at the top of the vector.
+    /// That way, we try to minimize wall execution time, by doing smarter scheduling.
+    pub fn repo_infos_by_wall_time(&self) -> Vec<RepositoryInfo> {
+        let mut repos = self.repositories.clone();
+        repos.sort_by(|a, b| b.check_time.cmp(&a.check_time));
+
+        // We create a struct for our internal representation for each repository
+        let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
+        for repo in repos {
+            let repository_info = RepositoryInfo::new(repo.path.clone());
+            repo_infos.push(repository_info);
+        }
+
+        repo_infos
+    }
+
+    pub fn update_check_times(&mut self, repo_infos: &[RepositoryInfo]) -> Result<()> {
+        for info in repo_infos.iter() {
+            let repo = self
+                .repositories
+                .iter_mut()
+                .find(|r| r.path == info.path)
+                .context("Expect repository to be there")?;
+
+            repo.check_time = info.check_time;
+        }
+        self.save()?;
+
+        Ok(())
     }
 }
 
