@@ -5,12 +5,21 @@ use strum_macros::Display;
 #[derive(Display)]
 pub enum RepositoryState {
     Unknown,
+    /// The current git HEAD is detached.
     Detached,
+    /// Repo has been fetched, merged and is up-to-date.
     UpToDate,
+    /// The repo looks fine during a `Check` run.
+    Ok,
+    /// We just fetched the newest info from the default remote.
     Fetched,
+    /// The repository has been successfully updated.
     Updated,
+    /// There's no way to fast-forward merge.
     NoFastForward,
+    /// There're some local filesystem changes.
     LocalChanges,
+    /// There're unpushed commits in this repo.
     NotPushed,
 }
 

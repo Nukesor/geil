@@ -9,9 +9,66 @@ use crate::cmd;
 use crate::process::*;
 use crate::repository_info::*;
 
+/// This is a simple wrapper around the actual repo check function
+/// for easier progress bar handling.
+pub fn check_repo(
+    multi_bar: &MultiProgress,
+    repo_info: RepositoryInfo,
+    envs: &HashMap<String, String>,
+) -> Result<RepositoryInfo> {
+    let mut bar = ProgressBar::new(3);
+    let spinner_style =
+        ProgressStyle::with_template("{duration} {spinner} {prefix:.bold.white.dim} - {wide_msg}")
+            .unwrap()
+            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+    bar.set_style(spinner_style);
+
+    // Add the bar to the end of the multi_bar.
+    bar = multi_bar.add(bar);
+
+    // Enable a steady tick after adding it to the bar, to ensure correct position rendering.
+    bar.enable_steady_tick(Duration::from_millis(125));
+
+    // Run the actual repo handling logic.
+    let result = check_repo_inner(&bar, repo_info, envs);
+
+    // Clean up this repo's progress bar.
+    bar.disable_steady_tick();
+    bar.finish();
+    multi_bar.remove(&bar);
+
+    result
+}
+
+pub fn check_repo_inner(
+    bar: &ProgressBar,
+    mut repo_info: RepositoryInfo,
+    envs: &HashMap<String, String>,
+) -> Result<RepositoryInfo> {
+    let name = repo_info.name.clone();
+
+    // Default to a `Ok` repo state.
+    // If anything is not ok, it'll be set in the respective function.
+    repo_info.state = RepositoryState::Ok;
+
+    bar.set_prefix(format!("[1/3] - {name}"));
+    bar.set_message(format!("{name}: Checking stash"));
+    get_stashed_entries(&mut repo_info, envs)?;
+
+    bar.set_prefix(format!("[2/3] - {name}"));
+    bar.set_message(format!("{name}: Check for local changes"));
+    check_local_changes(&mut repo_info, envs)?;
+
+    bar.set_prefix(format!("[3/3] - {name}"));
+    bar.set_message(format!("{name}: Check for unpushed commits"));
+    check_unpushed_commits(&mut repo_info, envs)?;
+
+    Ok(repo_info)
+}
+
 /// This is a simple wrapper around the actual repo handling function
 /// for easier progress bar handling.
-pub fn handle_repo(
+pub fn update_repo(
     multi_bar: &MultiProgress,
     repo_info: RepositoryInfo,
     envs: &HashMap<String, String>,
@@ -30,7 +87,7 @@ pub fn handle_repo(
     bar.enable_steady_tick(Duration::from_millis(125));
 
     // Run the actual repo handling logic.
-    let result = handle_repo_inner(&bar, repo_info, envs);
+    let result = update_repo_inner(&bar, repo_info, envs);
 
     // Clean up this repo's progress bar.
     bar.disable_steady_tick();
@@ -40,7 +97,7 @@ pub fn handle_repo(
     result
 }
 
-pub fn handle_repo_inner(
+pub fn update_repo_inner(
     bar: &ProgressBar,
     mut repo_info: RepositoryInfo,
     envs: &HashMap<String, String>,
@@ -53,7 +110,7 @@ pub fn handle_repo_inner(
 
     bar.set_prefix(format!("[2/5] - {name}"));
     bar.set_message(format!("{name}: Fetch from remote"));
-    fetch_repo(&mut repo_info, envs)?;
+    fetch(&mut repo_info, envs)?;
 
     bar.set_prefix(format!("[3/5] - {name}"));
     bar.set_message(format!("{name}: Check for local changes"));
@@ -67,7 +124,7 @@ pub fn handle_repo_inner(
 
     bar.set_prefix(format!("[4/5] - {name}"));
     bar.set_message(format!("{name}: Try to fast forward"));
-    update_repo(&mut repo_info, envs)?;
+    merge(&mut repo_info, envs)?;
 
     bar.set_prefix(format!("[5/5] - {name}"));
     bar.set_message(format!("{name}: Check for unpushed commits"));
@@ -130,7 +187,7 @@ pub fn check_local_changes(
     Ok(())
 }
 
-pub fn fetch_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
+pub fn fetch(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
     let name = repo_info.name.clone();
 
     let fetch = cmd!("git fetch --all")
@@ -149,7 +206,7 @@ pub fn fetch_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>
     Ok(())
 }
 
-pub fn update_repo(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
+pub fn merge(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> Result<()> {
     let name = repo_info.name.clone();
 
     let merge = cmd!("git merge --ff-only")

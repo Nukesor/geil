@@ -74,6 +74,24 @@ pub enum SubCommand {
         threads: Option<usize>,
     },
 
+    /// Only check for local changes
+    /// - Check stash sizes
+    /// - Check for local changes
+    Check {
+        /// Show all repositories and not only those that are somehow interesting
+        #[clap(short, long)]
+        all: bool,
+
+        /// Don't run repository checks in parallel
+        /// This is useful in combination with the verbose flag for debugging.
+        #[clap(short, long)]
+        not_parallel: bool,
+
+        /// The amount of threads that should run in parallel for checking repositories.
+        #[clap(short, long)]
+        threads: Option<usize>,
+    },
+
     /// The nested key subcommand
     Keys {
         #[clap(subcommand)]

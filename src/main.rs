@@ -54,6 +54,15 @@ fn main() -> Result<()> {
             load_keys(&state)?;
             update(&mut state, all, !not_parallel, threads)
         }
+        SubCommand::Check {
+            all,
+            not_parallel,
+            threads,
+        } => {
+            state.scan()?;
+            load_keys(&state)?;
+            check(&mut state, all, !not_parallel, threads)
+        }
         SubCommand::Keys { cmd } => ssh_key::handle_key_command(state, cmd),
     }
 }
@@ -258,7 +267,7 @@ fn update(state: &mut State, show_all: bool, parallel: bool, threads: Option<usi
             .map(|mut repo_info| {
                 // Handle the repository and track execution time.
                 let start = Instant::now();
-                repo_info = match handle_repo(&multi_bar, repo_info, &envs) {
+                repo_info = match update_repo(&multi_bar, repo_info, &envs) {
                     Ok(repo_info) => repo_info,
                     Err(err) => {
                         // Make sure the bar gets incremented even if we get an error.
@@ -281,7 +290,111 @@ fn update(state: &mut State, show_all: bool, parallel: bool, threads: Option<usi
         for repo_info in repo_infos.into_iter() {
             // Handle the repository and track execution time.
             let start = Instant::now();
-            let mut repo_info = handle_repo(&multi_bar, repo_info, &envs)?;
+            let mut repo_info = update_repo(&multi_bar, repo_info, &envs)?;
+            repo_info.check_time = Some(start.elapsed().as_millis() as usize);
+
+            debug!("Check took {}ms", start.elapsed().as_millis());
+            results.push(repo_info);
+        }
+
+        results
+    };
+
+    main_bar.finish();
+    let _ = multi_bar.clear();
+
+    for info in repo_infos.iter() {
+        let repo = state
+            .repositories
+            .iter_mut()
+            .find(|r| r.path == info.path)
+            .context("Expect repository to be there")?;
+
+        repo.check_time = info.check_time;
+    }
+    state.save()?;
+
+    print_status(repo_infos, show_all)?;
+
+    Ok(())
+}
+
+fn check(state: &mut State, show_all: bool, parallel: bool, threads: Option<usize>) -> Result<()> {
+    // First we order the repositories by check time (from the last run).
+    // Repositories with long running checks will be executed first.
+    let mut repos = state.repositories.clone();
+    repos.sort_by(|a, b| b.check_time.cmp(&a.check_time));
+
+    // We create a struct for our internal representation for each repository
+    let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
+    for repo in repos {
+        let repository_info = RepositoryInfo::new(repo.path.clone());
+        repo_infos.push(repository_info);
+    }
+
+    // Save all environment variables for later injection into git
+    let mut envs = HashMap::new();
+    for (key, value) in vars() {
+        envs.insert(key, value);
+    }
+
+    let multi_bar = MultiProgress::new();
+
+    // Get the power of the repository count.
+    // format the progress count based on that count, otherwise we get unwanted line breaks.
+    let power = repo_infos.len().checked_ilog10().unwrap_or(1) + 1;
+
+    // Set up the styling for the "main" progress bar.
+    let template = &format!("Checking repositories: {{wide_bar}} {{pos:>{power}}}/{{len:{power}}}");
+    let style = ProgressStyle::default_bar()
+        .template(template)
+        .context("Wrong context indicatif style.")?;
+    let mut main_bar = ProgressBar::new(repo_infos.len() as u64);
+    main_bar.set_style(style);
+
+    // Add the main bar to the multi_bar at the last possible position.
+    main_bar = multi_bar.insert(0, main_bar);
+    // Tick once to immediately show it.
+    main_bar.tick();
+
+    let repo_infos = if parallel {
+        // Set the amount of threads, if specified.
+        if let Some(threads) = threads {
+            rayon::ThreadPoolBuilder::new()
+                .num_threads(threads)
+                .build_global()
+                .unwrap();
+        }
+
+        let results: Result<Vec<RepositoryInfo>> = repo_infos
+            .into_par_iter()
+            .map(|mut repo_info| {
+                // Handle the repository and track execution time.
+                let start = Instant::now();
+                repo_info = match check_repo(&multi_bar, repo_info, &envs) {
+                    Ok(repo_info) => repo_info,
+                    Err(err) => {
+                        // Make sure the bar gets incremented even if we get an error.
+                        main_bar.inc(1);
+                        return Err(err);
+                    }
+                };
+                repo_info.check_time = Some(start.elapsed().as_millis() as usize);
+
+                main_bar.inc(1);
+                Ok(repo_info)
+            })
+            .collect();
+
+        main_bar.finish_with_message("All done: ");
+
+        results?
+    } else {
+        let mut results = Vec::new();
+        for repo_info in repo_infos.into_iter() {
+            // Handle the repository and track execution time.
+            let start = Instant::now();
+            let mut repo_info = check_repo(&multi_bar, repo_info, &envs)?;
             repo_info.check_time = Some(start.elapsed().as_millis() as usize);
 
             debug!("Check took {}ms", start.elapsed().as_millis());

@@ -6,8 +6,10 @@ use crate::repository_info::{RepositoryInfo, RepositoryState};
 pub fn print_status(mut repo_infos: Vec<RepositoryInfo>, show_all: bool) -> Result<()> {
     // Filter all repos that don't need attention.
     if !show_all {
-        repo_infos
-            .retain(|info| !matches!(info.state, RepositoryState::UpToDate) || info.stashed != 0);
+        repo_infos.retain(|info| {
+            !matches!(info.state, RepositoryState::UpToDate | RepositoryState::Ok)
+                || info.stashed != 0
+        });
     }
 
     if repo_infos.is_empty() {
@@ -37,6 +39,7 @@ pub fn format_state(state: &RepositoryState) -> Cell {
     match state {
         RepositoryState::Unknown => Cell::new("Unknown").fg(Color::Red),
         RepositoryState::Detached => Cell::new("Detached HEAD").fg(Color::Yellow),
+        RepositoryState::Ok => Cell::new("Ok").fg(Color::Green),
         RepositoryState::Updated => Cell::new("Updated").fg(Color::Green),
         RepositoryState::UpToDate => Cell::new("Up to date").fg(Color::DarkGreen),
         RepositoryState::Fetched => Cell::new("Fetched").fg(Color::Yellow),
