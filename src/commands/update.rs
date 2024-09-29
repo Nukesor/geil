@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env::vars;
 use std::time::{Duration, Instant};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::debug;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
@@ -42,7 +42,10 @@ pub fn update(
             .map(|mut repo_info| {
                 // Handle the repository and track execution time.
                 let start = Instant::now();
-                repo_info = match update_repo(&multi_progress, repo_info, &envs) {
+                let repo_path = repo_info.path.clone();
+                repo_info = match update_repo(&multi_progress, repo_info, &envs)
+                    .context(format!("Error while updating repo: {:?}", repo_path))
+                {
                     Ok(repo_info) => repo_info,
                     Err(err) => {
                         // Make sure the bar gets incremented even if we get an error.
