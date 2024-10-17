@@ -54,6 +54,9 @@ pub enum SubCommand {
         directories: Vec<PathBuf>,
     },
 
+    /// Print information about the current configuration of geil.
+    Info,
+
     /// This is the main command of `geil`. This will:
     /// - Fetch all branches from a remote
     /// - Check stash sizes

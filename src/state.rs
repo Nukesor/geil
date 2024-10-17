@@ -60,7 +60,8 @@ impl State {
 
 impl State {
     /// Save a state to the disk.
-    pub fn save(&self) -> Result<()> {
+    pub fn save(&mut self) -> Result<()> {
+        self.repositories.sort_by(|a, b| a.path.cmp(&b.path));
         let path = default_cache_path()?;
         let file = File::create(path)?;
 

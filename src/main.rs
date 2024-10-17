@@ -36,6 +36,7 @@ fn main() -> Result<()> {
         SubCommand::Watch { directories } => commands::watch(&mut state, &directories),
         SubCommand::Unwatch { directories } => commands::unwatch(&mut state, &directories),
         SubCommand::Ignore { directories } => commands::ignore(&mut state, &directories),
+        SubCommand::Info => commands::print_info(&mut state),
         SubCommand::Update {
             all,
             not_parallel,
