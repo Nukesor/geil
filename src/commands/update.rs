@@ -9,6 +9,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::display::multi_progress_bar;
 use crate::git::{check_local_changes, check_unpushed_commits, fetch, get_stashed_entries, merge};
+use crate::process::Cmd;
 use crate::repository_info::RepositoryState;
 use crate::{display::print_status, repository_info::RepositoryInfo, state::State};
 
@@ -149,9 +150,19 @@ pub fn update_repo_inner(
     bar.set_message(format!("{name}: Try to fast forward"));
     merge(&mut repo_info, envs)?;
 
-    bar.set_prefix(format!("[5/5] - {name}"));
-    bar.set_message(format!("{name}: Check for unpushed commits"));
-    if matches!(repo_info.state, RepositoryState::UpToDate) {
+    if matches!(repo_info.state, RepositoryState::Updated) {
+        // The repository has been updated.
+        // Check if we should run any hooks
+        if let Some(hook) = &repo_info.hook {
+            bar.set_prefix(format!("[5/5] - {name}"));
+            bar.set_message(format!("{name}: Running post-update hook"));
+
+            Cmd::new(hook.clone()).cwd(repo_info.path.clone()).run()?;
+        }
+    } else if matches!(repo_info.state, RepositoryState::UpToDate) {
+        bar.set_prefix(format!("[5/5] - {name}"));
+        bar.set_message(format!("{name}: Check for unpushed commits"));
+        // Check for any unpushed commits or a detached head.
         check_unpushed_commits(&mut repo_info, envs)?;
     }
 

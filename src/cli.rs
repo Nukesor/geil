@@ -100,6 +100,12 @@ pub enum SubCommand {
         #[clap(subcommand)]
         cmd: KeysCmd,
     },
+
+    /// The nested hooks subcommand
+    Hooks {
+        #[clap(subcommand)]
+        cmd: HooksCmd,
+    },
 }
 
 #[derive(Parser, Debug)]
@@ -117,4 +123,22 @@ pub enum KeysCmd {
 
     /// Remove a string by name.
     Remove { name: String },
+}
+
+#[derive(Parser, Debug)]
+pub enum HooksCmd {
+    /// Add one or more repositories to your watchlist
+    Add {
+        /// The path of the repository
+        repo_path: PathBuf,
+
+        /// The command to execute
+        command: String,
+    },
+
+    /// List all known keys.
+    List,
+
+    /// Remove a command by repository.
+    Remove { repo_path: PathBuf },
 }

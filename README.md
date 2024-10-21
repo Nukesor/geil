@@ -13,7 +13,8 @@ A tool for updating all of your repositories and keeping them clean.
 - Fast-forward only update
 - Check git stash size for each repository
 - Check for local changes
-
+- Ignore specific repositories
+- Execute shell commands after a successful update.
 
 ## Add repositories
 
@@ -21,7 +22,7 @@ There are two ways to tell `geil` to update your repositories.
 
 1. Individually add repositories via `geil add $path_to_repository`.
 2. Let `geil` watch a whole directory via `geil watch $dir_to_watch`.
-    Every time `geil` is started, it will automatically detect new repositories that're up to 5 levels deep in that folder.
+   Every time `geil` is started, it will automatically detect new repositories that're up to 5 levels deep in that folder.
 
 ## Update your repository
 

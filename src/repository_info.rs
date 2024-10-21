@@ -30,10 +30,11 @@ pub struct RepositoryInfo {
     pub stashed: usize,
     /// The time (ms) it took to check the repo.
     pub check_time: Option<usize>,
+    pub hook: Option<String>,
 }
 
 impl RepositoryInfo {
-    pub fn new(path: PathBuf) -> RepositoryInfo {
+    pub fn new(path: PathBuf, hook: Option<String>) -> RepositoryInfo {
         // Get the repository name from the path for the progress bar
         let name = path.file_name().map_or("no_name?".to_string(), |name| {
             name.to_string_lossy().to_string()
@@ -45,6 +46,7 @@ impl RepositoryInfo {
             state: RepositoryState::Unknown,
             stashed: 0,
             check_time: None,
+            hook,
         }
     }
 }

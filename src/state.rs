@@ -14,6 +14,8 @@ pub struct Repository {
     pub path: PathBuf,
     /// The time it took to check this repository in the last run.
     pub check_time: Option<usize>,
+    /// A command that will be executed after a successful update.
+    pub hook: Option<String>,
 }
 
 impl Repository {
@@ -21,6 +23,7 @@ impl Repository {
         Self {
             path,
             check_time: None,
+            hook: None,
         }
     }
 }
@@ -128,6 +131,10 @@ impl State {
         Ok(())
     }
 
+    pub fn repo_at_path(&mut self, path: &Path) -> Option<&mut Repository> {
+        self.repositories.iter_mut().find(|repo| repo.path == path)
+    }
+
     pub fn has_repo_at_path(&self, path: &Path) -> bool {
         self.repositories.iter().any(|repo| repo.path == path)
     }
@@ -145,7 +152,7 @@ impl State {
         // We create a struct for our internal representation for each repository
         let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
         for repo in repos {
-            let repository_info = RepositoryInfo::new(repo.path.clone());
+            let repository_info = RepositoryInfo::new(repo.path.clone(), repo.hook);
             repo_infos.push(repository_info);
         }
 

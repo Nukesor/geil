@@ -56,5 +56,6 @@ fn main() -> Result<()> {
             commands::check(&mut state, all, !not_parallel, threads)
         }
         SubCommand::Keys { cmd } => ssh_key::handle_key_command(state, cmd),
+        SubCommand::Hooks { cmd } => commands::handle_hooks_command(state, cmd),
     }
 }
