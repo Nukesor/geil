@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use strum_macros::Display;
+use strum::Display;
 
 #[derive(Display)]
 pub enum RepositoryState {
