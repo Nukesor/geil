@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, Context, Result};
 use log::debug;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, DefaultOnError};
 
 use crate::repository_info::RepositoryInfo;
