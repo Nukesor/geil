@@ -6,6 +6,9 @@
 
 A tool for updating all of your repositories and keeping them clean.
 
+This project is mostly used by myself. You may also use it if you like.
+However, I don't plan to provide the same level of support for this project as I do for my other projects.
+
 ## Features
 
 - Watch folders for new repositories
