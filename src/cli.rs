@@ -27,6 +27,7 @@ pub enum SubCommand {
     },
 
     /// Remove a repository from the list of known repositories.
+    ///
     /// Note: The repository will be re-added if it's inside a watched folder!
     Remove {
         /// The repositories that should be removed
@@ -34,6 +35,7 @@ pub enum SubCommand {
     },
 
     /// Add a directory which should be searched for repositories.
+    ///
     /// The maximum depths for this search is 5 subdirectories.
     /// This repository will be searched for repos every time you run `update` or `check`.
     Watch {
@@ -48,6 +50,7 @@ pub enum SubCommand {
     },
 
     /// Ignore a specific repository.
+    ///
     /// This can be useful, if you want to ignore a specific directory inside a watched directory.
     Ignore {
         /// The directory that should be ignored
@@ -57,7 +60,8 @@ pub enum SubCommand {
     /// Print information about the current configuration of geil.
     Info,
 
-    /// This is the main command of `geil`. This will:
+    /// This is the main command of `geil`.
+    ///
     /// - Fetch all branches from a remote
     /// - Check stash sizes
     /// - Check for local changes
@@ -77,7 +81,8 @@ pub enum SubCommand {
         threads: Option<usize>,
     },
 
-    /// Only check for local changes
+    /// Only check for local changes.
+    ///
     /// - Check stash sizes
     /// - Check for local changes
     Check {
