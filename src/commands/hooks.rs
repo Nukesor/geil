@@ -2,7 +2,7 @@
 
 use std::{fs, path::PathBuf};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 
 use crate::{cli::HooksCmd, state::State};
 

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use log::error;
 
-use crate::state::{discover, State};
+use crate::state::{State, discover};
 
 pub fn unwatch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     for path in directories {

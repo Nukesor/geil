@@ -1,17 +1,21 @@
-use std::collections::HashMap;
-use std::env::vars;
-use std::time::{Duration, Instant};
+use std::{
+    collections::HashMap,
+    env::vars,
+    time::{Duration, Instant},
+};
 
 use anyhow::{Context, Result};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 use log::debug;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
-use crate::display::multi_progress_bar;
-use crate::git::{check_local_changes, check_unpushed_commits, fetch, get_stashed_entries, merge};
-use crate::process::Cmd;
-use crate::repository_info::RepositoryState;
-use crate::{display::print_status, repository_info::RepositoryInfo, state::State};
+use crate::{
+    display::{multi_progress_bar, print_status},
+    git::{check_local_changes, check_unpushed_commits, fetch, get_stashed_entries, merge},
+    process::Cmd,
+    repository_info::{RepositoryInfo, RepositoryState},
+    state::State,
+};
 
 pub fn update(
     state: &mut State,

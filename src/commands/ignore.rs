@@ -4,7 +4,7 @@ use anyhow::Result;
 use log::error;
 
 use super::unwatch;
-use crate::state::{discover, State};
+use crate::state::{State, discover};
 
 /// Explicitly ignore a given directory.
 /// No repositories will be updated or discovered, even if it's inside a watched directory.

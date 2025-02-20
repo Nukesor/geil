@@ -1,10 +1,12 @@
-use std::fs::{read_dir, File};
-use std::path::{Path, PathBuf};
+use std::{
+    fs::{File, read_dir},
+    path::{Path, PathBuf},
+};
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DefaultOnError};
+use serde_with::{DefaultOnError, serde_as};
 
 use crate::repository_info::RepositoryInfo;
 

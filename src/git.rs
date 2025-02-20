@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use log::{debug, info};
 
-use crate::cmd;
-use crate::process::*;
-use crate::repository_info::*;
+use crate::{cmd, process::*, repository_info::*};
 
 pub fn get_stashed_entries(
     repo_info: &mut RepositoryInfo,

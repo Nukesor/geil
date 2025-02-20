@@ -7,11 +7,11 @@ repository = "https://github.com/nukesor/geil"
 license = "MIT"
 keywords = ["commandline", "git", "manager"]
 readme = "README.md"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 anyhow = "1"
-clap = { version = "4", features = ["derive", "cargo"] }
+clap = { version = "4", features = ["cargo", "derive"] }
 comfy-table = "7"
 dirs = "5"
 indicatif = { version = "0.17", features = ["rayon"] }
