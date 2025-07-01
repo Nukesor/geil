@@ -13,7 +13,7 @@ edition = "2024"
 anyhow = "1"
 clap = { version = "4", features = ["cargo", "derive"] }
 comfy-table = "7"
-dirs = "5"
+dirs = "6"
 indicatif = { version = "0.17", features = ["rayon"] }
 log = "0.4"
 rayon = "1"
