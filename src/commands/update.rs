@@ -49,7 +49,7 @@ pub fn update(
                 let start = Instant::now();
                 let repo_path = repo_info.path.clone();
                 repo_info = match update_repo(&multi_progress, repo_info, &envs)
-                    .context(format!("Error while updating repo: {:?}", repo_path))
+                    .context(format!("Error while updating repo: {repo_path:?}"))
                 {
                     Ok(repo_info) => repo_info,
                     Err(err) => {

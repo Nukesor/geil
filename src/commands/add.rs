@@ -18,7 +18,7 @@ pub fn add(state: &mut State, repos: Vec<PathBuf>) -> Result<()> {
     for path in repos {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
-            error!("Cannot find repository at {:?}", path);
+            error!("Cannot find repository at {path:?}");
         }
 
         // Store the absolute path.

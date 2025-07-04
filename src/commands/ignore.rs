@@ -16,7 +16,7 @@ pub fn ignore(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     for path in directories.iter() {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
-            error!("Cannot find directory at {:?}", path);
+            error!("Cannot find directory at {path:?}");
             continue;
         }
 
@@ -39,7 +39,7 @@ pub fn ignore(state: &mut State, directories: &[PathBuf]) -> Result<()> {
                 .retain(|repo| repo.path != repo_to_remove.path);
         }
 
-        println!("Ignoring directory: {:?}", real_path);
+        println!("Ignoring directory: {real_path:?}");
         state.ignored.push(real_path.to_owned())
     }
 

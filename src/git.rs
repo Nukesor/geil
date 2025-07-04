@@ -101,7 +101,7 @@ pub fn merge(repo_info: &mut RepositoryInfo, envs: &HashMap<String, String>) -> 
         info!("{name}: Fast forward not possible!");
         repo_info.state = RepositoryState::NoFastForward;
     } else {
-        info!("{name}: Couldn't get state from output: {}", stdout);
+        info!("{name}: Couldn't get state from output: {stdout}");
         repo_info.state = RepositoryState::Unknown;
     }
 

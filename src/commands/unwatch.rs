@@ -9,7 +9,7 @@ pub fn unwatch(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     for path in directories {
         // Check if the directory to add actually exists
         if !path.exists() || !path.is_dir() {
-            error!("Cannot find directory at {:?}", path);
+            error!("Cannot find directory at {path:?}");
             continue;
         }
 
