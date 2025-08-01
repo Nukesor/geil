@@ -14,7 +14,7 @@ anyhow = "1"
 clap = { version = "4", features = ["cargo", "derive"] }
 comfy-table = "7"
 dirs = "6"
-indicatif = { version = "0.17", features = ["rayon"] }
+indicatif = { version = "0.18", features = ["rayon"] }
 log = "0.4"
 rayon = "1"
 serde = { version = "1", features = ["derive"] }
