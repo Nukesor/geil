@@ -10,6 +10,7 @@ use log::debug;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::{
+    config::GeilConfig,
     display::{multi_progress_bar, print_status},
     git::{check_local_changes, check_unpushed_commits, get_stashed_entries},
     repository_info::{RepositoryInfo, RepositoryState},
@@ -18,11 +19,12 @@ use crate::{
 
 pub fn check(
     state: &mut State,
+    config: &GeilConfig,
     show_all: bool,
     parallel: bool,
     threads: Option<usize>,
 ) -> Result<()> {
-    let repo_infos = state.repo_infos_by_wall_time();
+    let repo_infos = state.repo_infos_by_wall_time(config);
 
     // Save all environment variables for later injection into git
     let mut envs = HashMap::new();

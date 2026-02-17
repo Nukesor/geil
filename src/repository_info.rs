@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use strum::Display;
 
+use crate::config::Hook;
+
 #[derive(Display)]
 pub enum RepositoryState {
     Unknown,
@@ -34,7 +36,7 @@ pub struct RepositoryInfo {
 }
 
 impl RepositoryInfo {
-    pub fn new(path: PathBuf, hook: Option<String>) -> RepositoryInfo {
+    pub fn new(path: PathBuf, hook: Option<&Hook>) -> RepositoryInfo {
         // Get the repository name from the path for the progress bar
         let name = path.file_name().map_or("no_name?".to_string(), |name| {
             name.to_string_lossy().to_string()
@@ -46,7 +48,7 @@ impl RepositoryInfo {
             state: RepositoryState::Unknown,
             stashed: 0,
             check_time: None,
-            hook,
+            hook: hook.map(|hook| hook.command.clone()),
         }
     }
 }

@@ -4,11 +4,11 @@ use std::{
 };
 
 use anyhow::{Context, Result, anyhow};
-use log::debug;
+use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use serde_with::{DefaultOnError, serde_as};
 
-use crate::repository_info::RepositoryInfo;
+use crate::{config::GeilConfig, repository_info::RepositoryInfo};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Repository {
@@ -16,8 +16,6 @@ pub struct Repository {
     pub path: PathBuf,
     /// The time it took to check this repository in the last run.
     pub check_time: Option<usize>,
-    /// A command that will be executed after a successful update.
-    pub hook: Option<String>,
 }
 
 impl Repository {
@@ -25,40 +23,26 @@ impl Repository {
         Self {
             path,
             check_time: None,
-            hook: None,
         }
     }
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct SshKey {
-    /// The name of the key
-    pub name: String,
-    /// The path to the private key.
-    pub path: PathBuf,
 }
 
 #[serde_as]
 #[derive(Deserialize, Serialize)]
 pub struct State {
-    /// All paths that're actively watched for new repositories
-    pub watched: Vec<PathBuf>,
-    /// All paths that're explicitly ignored.
+    /// All local-machine-only paths that're explicitly ignored.
     #[serde(default = "Default::default")]
     pub ignored: Vec<PathBuf>,
+    /// Infos about previous repos and their execution time.
     #[serde_as(deserialize_as = "DefaultOnError")]
     pub repositories: Vec<Repository>,
-    #[serde(default = "Default::default")]
-    pub keys: Vec<SshKey>,
 }
 
 impl State {
     pub fn new() -> State {
         State {
             ignored: Vec::new(),
-            watched: Vec::new(),
             repositories: Vec::new(),
-            keys: Vec::new(),
         }
     }
 }
@@ -70,7 +54,7 @@ impl State {
         let path = default_cache_path()?;
         let file = File::create(path)?;
 
-        serde_cbor::to_writer(file, &self).context("Failed to write state to disk:")?;
+        serde_yaml::to_writer(file, &self).context("Failed to write state to disk:")?;
 
         Ok(())
     }
@@ -84,24 +68,13 @@ impl State {
         }
 
         let file = File::open(path)?;
-        let state = serde_cbor::from_reader(file)?;
+        let state = serde_yaml::from_reader(file)?;
 
         Ok(state)
     }
 
-    pub fn scan(&mut self) -> Result<()> {
-        // Go through all watched folder and check if they still exist
-        for key in (0..self.watched.len()).rev() {
-            if !self.watched[key].exists() || !self.watched[key].is_dir() {
-                println!(
-                    "Watched folder does no longer exist: {:?}",
-                    &self.watched[key]
-                );
-                self.watched.remove(key);
-            }
-        }
-
-        // Go through all repositories and check if they still exist
+    pub fn scan(&mut self, config: &GeilConfig) -> Result<()> {
+        // Go through all cached repositories and check if they still exist
         for key in (0..self.repositories.len()).rev() {
             if !self.repositories[key].path.exists()
                 || !self.repositories[key].path.is_dir()
@@ -116,10 +89,14 @@ impl State {
             }
         }
 
+        // Merge both, local ignored paths and ignored paths from config
+        let mut ignored_paths: Vec<PathBuf> = config.ignored().collect();
+        ignored_paths.append(&mut self.ignored.clone());
+
         // Do a full repository discovery on all watched repositories
-        for watched in &self.watched.clone() {
+        for watched in config.watched() {
             let mut new_repos = Vec::new();
-            discover(&self.ignored, watched, 0, &mut new_repos);
+            discover(&ignored_paths, &watched, 0, &mut new_repos);
             for repo in new_repos {
                 if !self.has_repo_at_path(&repo.path) {
                     println!("Found new repository: {:?}", repo.path);
@@ -128,13 +105,22 @@ impl State {
             }
         }
 
+        // Check all explicitly added single repos.
+        for repo_path in config.repositories() {
+            if repo_path.exists() {
+                warn!("Config points to non-existing repo path: {repo_path:?}");
+            }
+            if !self.has_repo_at_path(&repo_path) {
+                self.repositories.push(Repository {
+                    path: repo_path,
+                    check_time: None,
+                });
+            }
+        }
+
         self.save()?;
 
         Ok(())
-    }
-
-    pub fn repo_at_path(&mut self, path: &Path) -> Option<&mut Repository> {
-        self.repositories.iter_mut().find(|repo| repo.path == path)
     }
 
     pub fn has_repo_at_path(&self, path: &Path) -> bool {
@@ -147,14 +133,16 @@ impl State {
     /// Order the repositories by check wall time from the last run.
     /// Repositories with long running checks will be at the top of the vector.
     /// That way, we try to minimize wall execution time, by doing smarter scheduling.
-    pub fn repo_infos_by_wall_time(&self) -> Vec<RepositoryInfo> {
+    pub fn repo_infos_by_wall_time(&self, config: &GeilConfig) -> Vec<RepositoryInfo> {
         let mut repos = self.repositories.clone();
         repos.sort_by(|a, b| b.check_time.cmp(&a.check_time));
 
         // We create a struct for our internal representation for each repository
         let mut repo_infos: Vec<RepositoryInfo> = Vec::new();
         for repo in repos {
-            let repository_info = RepositoryInfo::new(repo.path.clone(), repo.hook);
+            let hook = config.hooks.iter().find(|hook| hook.path() == repo.path);
+
+            let repository_info = RepositoryInfo::new(repo.path.clone(), hook);
             repo_infos.push(repository_info);
         }
 

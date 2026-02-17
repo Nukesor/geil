@@ -34,21 +34,6 @@ pub enum SubCommand {
         repos: Vec<PathBuf>,
     },
 
-    /// Add a directory which should be searched for repositories.
-    ///
-    /// The maximum depths for this search is 5 subdirectories.
-    /// This repository will be searched for repos every time you run `update` or `check`.
-    Watch {
-        /// The directory that should be watched
-        directories: Vec<PathBuf>,
-    },
-
-    /// Unwatch folders and remove all repositories that can be found inside
-    Unwatch {
-        /// The directory that should be watched
-        directories: Vec<PathBuf>,
-    },
-
     /// Ignore a specific repository.
     ///
     /// This can be useful, if you want to ignore a specific directory inside a watched directory.
@@ -99,51 +84,4 @@ pub enum SubCommand {
         #[clap(short, long)]
         threads: Option<usize>,
     },
-
-    /// The nested key subcommand
-    Keys {
-        #[clap(subcommand)]
-        cmd: KeysCmd,
-    },
-
-    /// The nested hooks subcommand
-    Hooks {
-        #[clap(subcommand)]
-        cmd: HooksCmd,
-    },
-}
-
-#[derive(Parser, Debug)]
-pub enum KeysCmd {
-    /// Add one or more repositories to your watchlist
-    Add {
-        /// The name you want to give the key.
-        name: String,
-        /// The absolute path to the private key.
-        path: PathBuf,
-    },
-
-    /// List all known keys.
-    List,
-
-    /// Remove a string by name.
-    Remove { name: String },
-}
-
-#[derive(Parser, Debug)]
-pub enum HooksCmd {
-    /// Add one or more repositories to your watchlist
-    Add {
-        /// The path of the repository
-        repo_path: PathBuf,
-
-        /// The command to execute
-        command: String,
-    },
-
-    /// List all known keys.
-    List,
-
-    /// Remove a command by repository.
-    Remove { repo_path: PathBuf },
 }

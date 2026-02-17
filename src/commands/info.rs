@@ -1,33 +1,33 @@
 use anyhow::Result;
 
-use crate::state::State;
+use crate::{config::GeilConfig, state::State};
 
-pub fn print_info(state: &mut State) -> Result<()> {
-    if !state.watched.is_empty() {
+pub fn print_info(config: &GeilConfig, state: &State) -> Result<()> {
+    if !config.watched.is_empty() {
         println!("Watched folders:");
-        for watched in &state.watched {
+        for watched in config.watched() {
             println!("  - {watched:?}");
         }
         println!();
     }
 
-    if !state.ignored.is_empty() {
+    if !config.ignored.is_empty() || !state.ignored.is_empty() {
         println!("Ignored folders:");
-        for ignored in &state.ignored {
+        for ignored in config.ignored().chain(state.ignored.clone().into_iter()) {
             println!("  - {ignored:?}");
         }
         println!();
     }
 
-    if !state.keys.is_empty() {
+    if !config.keys.is_empty() {
         println!("Known keys:");
-        for key in &state.keys {
-            println!("  - {} ({:?})", key.name, key.path);
+        for key in &config.keys {
+            println!("  - {} ({:?})", key.name, key.path());
         }
         println!();
     }
 
-    if !state.keys.is_empty() {
+    if !state.repositories.is_empty() {
         println!("Known repositories:\n");
         for repo in &state.repositories {
             println!("  - {:?}", repo.path);

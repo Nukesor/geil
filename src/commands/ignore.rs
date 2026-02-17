@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use anyhow::Result;
 use log::error;
 
-use super::unwatch;
 use crate::state::{State, discover};
 
 /// Explicitly ignore a given directory.
@@ -11,7 +10,6 @@ use crate::state::{State, discover};
 pub fn ignore(state: &mut State, directories: &[PathBuf]) -> Result<()> {
     // First, unwatch in case any of them have been actively watched.
     // This also explicitly removes any repositories that were tracked.
-    unwatch(state, directories)?;
 
     for path in directories.iter() {
         // Check if the directory to add actually exists
