@@ -221,7 +221,7 @@ pub fn discover(
 }
 
 fn default_cache_path() -> Result<PathBuf> {
-    let home = dirs::home_dir().ok_or_else(|| anyhow!("Couldn't resolve home dir"))?;
-    let path = home.join(".local/share/geil");
+    let home = dirs::state_dir().ok_or_else(|| anyhow!("Couldn't resolve home dir"))?;
+    let path = home.join("geil.state");
     Ok(path)
 }
