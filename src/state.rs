@@ -107,8 +107,9 @@ impl State {
 
         // Check all explicitly added single repos.
         for repo_path in config.repositories() {
-            if repo_path.exists() {
+            if !repo_path.exists() {
                 warn!("Config points to non-existing repo path: {repo_path:?}");
+                continue;
             }
             if !self.has_repo_at_path(&repo_path) {
                 self.repositories.push(Repository {
