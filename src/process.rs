@@ -1,7 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::{Result, bail};
-use subprocess::{CaptureData, Exec, Redirection};
+use subprocess::{Capture, Exec, Redirection};
 
 #[macro_export]
 macro_rules! cmd {
@@ -45,7 +45,7 @@ impl Cmd {
     }
 
     /// Run the command and return the exit status
-    pub fn run(&self) -> Result<CaptureData> {
+    pub fn run(&self) -> Result<Capture> {
         let mut exec = Exec::shell(&self.command)
             .stdout(Redirection::Pipe)
             .stderr(Redirection::Merge);
