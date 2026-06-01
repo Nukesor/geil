@@ -136,7 +136,7 @@ impl State {
     /// That way, we try to minimize wall execution time, by doing smarter scheduling.
     pub fn repo_infos_by_wall_time(&self, config: &GeilConfig) -> Vec<RepositoryInfo> {
         let mut repos = self.repositories.clone();
-        repos.sort_by(|a, b| b.check_time.cmp(&a.check_time));
+        repos.sort_by_key(|b| std::cmp::Reverse(b.check_time));
 
         // We create a struct for our internal representation for each repository
         let mut repo_infos: Vec<RepositoryInfo> = Vec::new();

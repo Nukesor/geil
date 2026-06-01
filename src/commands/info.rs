@@ -13,7 +13,7 @@ pub fn print_info(config: &GeilConfig, state: &State) -> Result<()> {
 
     if !config.ignored.is_empty() || !state.ignored.is_empty() {
         println!("Ignored folders:");
-        for ignored in config.ignored().chain(state.ignored.clone().into_iter()) {
+        for ignored in config.ignored().chain(state.ignored.clone()) {
             println!("  - {ignored:?}");
         }
         println!();
